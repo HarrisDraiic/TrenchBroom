@@ -23,6 +23,8 @@
 namespace tb::architect
 {
 
+class ProfileStore;
+
 inline constexpr std::string_view ProtocolVersion = "architect/1";
 inline constexpr std::size_t MaximumRequestBytes = 64u * 1024u;
 inline constexpr std::size_t MaximumPromptBytes = 8u * 1024u;
@@ -31,6 +33,7 @@ QJsonObject roomBlueprintToJson(const RoomBlueprint& blueprint);
 RoomPlanResult roomBlueprintFromJson(const QJsonObject& json);
 
 QJsonObject makeErrorResponse(QString id, const Error& error);
-QJsonObject handleRequest(const QJsonObject& request);
+QJsonObject handleRequest(
+  const QJsonObject& request, ProfileStore* profileStore = nullptr);
 
 } // namespace tb::architect

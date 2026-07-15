@@ -18,9 +18,11 @@
 #include <QJsonParseError>
 
 #include "architect/Error.h"
+#include "architect/ProfileStore.h"
 #include "architect/Protocol.h"
 
 #include <cstdio>
+#include <optional>
 #include <utility>
 
 namespace
@@ -47,6 +49,21 @@ int main(int argc, char* argv[])
 {
   auto app = QCoreApplication{argc, argv};
   QCoreApplication::setApplicationName("TrenchBroomArchitectRuntime");
+
+  auto profileStore = std::optional<tb::architect::ProfileStore>{};
+  const auto arguments = QCoreApplication::arguments();
+  if (arguments.size() == 3 && arguments[1] == "--profile-root")
+  {
+    if (arguments[2].trimmed().isEmpty())
+    {
+      return 2;
+    }
+    profileStore.emplace(arguments[2]);
+  }
+  else if (arguments.size() != 1)
+  {
+    return 2;
+  }
 
   auto input = QFile{};
   auto output = QFile{};
@@ -100,7 +117,10 @@ int main(int argc, char* argv[])
       continue;
     }
 
-    writeResponse(output, tb::architect::handleRequest(document.object()));
+    writeResponse(
+      output,
+      tb::architect::handleRequest(
+        document.object(), profileStore ? &*profileStore : nullptr));
   }
 
   return 0;

@@ -9,10 +9,14 @@
  (at your option) any later version.
 */
 
+#include <QDir>
+#include <QJsonArray>
 #include <QJsonObject>
 #include <QString>
+#include <QTemporaryDir>
 
 #include "architect/Error.h"
+#include "architect/ProfileStore.h"
 #include "architect/Protocol.h"
 #include "architect/RoomBlueprint.h"
 
@@ -112,6 +116,73 @@ TEST_CASE("Protocol")
     const auto parsed = roomBlueprintFromJson(json);
     REQUIRE(std::holds_alternative<RoomBlueprint>(parsed));
     CHECK(std::get<RoomBlueprint>(parsed).material == "stone");
+  }
+
+  SECTION("manages draft profiles through the bounded runtime protocol")
+  {
+    auto temporaryDirectory = QTemporaryDir{};
+    REQUIRE(temporaryDirectory.isValid());
+    auto store = ProfileStore{QDir{temporaryDirectory.path()}.filePath("Profiles")};
+
+    const auto created = handleRequest(
+      QJsonObject{
+        {"protocol", "architect/1"},
+        {"id", "create-profile"},
+        {"method", "profiles.create_draft"},
+        {"params",
+         QJsonObject{
+           {"display_name", "Greyhaven Monastery"},
+           {"design_language", "Sober coastal stone and compact cloisters."},
+           {"aliases", QJsonArray{"Greyhaven"}},
+         }},
+      },
+      &store);
+    const auto profile = created.value("result").toObject().value("profile").toObject();
+    REQUIRE(profile.value("status").toString() == "draft");
+
+    const auto selected = handleRequest(
+      QJsonObject{
+        {"protocol", "architect/1"},
+        {"id", "select-profile"},
+        {"method", "profiles.set_active"},
+        {"params", QJsonObject{{"reference", "Greyhaven"}}},
+      },
+      &store);
+    CHECK(
+      selected.value("result").toObject().value("profile").toObject().value("id")
+      == profile.value("id"));
+
+    const auto listed = handleRequest(
+      QJsonObject{
+        {"protocol", "architect/1"},
+        {"id", "list-profiles"},
+        {"method", "profiles.list"},
+      },
+      &store);
+    const auto listResult = listed.value("result").toObject();
+    CHECK(listResult.value("profiles").toArray().size() == 1);
+    CHECK(listResult.value("active_profile_id") == profile.value("id"));
+
+    const auto cleared = handleRequest(
+      QJsonObject{
+        {"protocol", "architect/1"},
+        {"id", "clear-profile"},
+        {"method", "profiles.clear_active"},
+      },
+      &store);
+    CHECK(cleared.value("result").toObject().value("cleared").toBool());
+  }
+
+  SECTION("keeps profile methods disabled without a configured root")
+  {
+    const auto response = handleRequest(QJsonObject{
+      {"protocol", "architect/1"},
+      {"id", "profiles-disabled"},
+      {"method", "profiles.list"},
+    });
+
+    CHECK(
+      response.value("error").toObject().value("code").toString() == "bridge_disabled");
   }
 
   SECTION("rejects invalid blueprint dimensions")

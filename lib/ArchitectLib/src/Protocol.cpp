@@ -14,11 +14,14 @@
 #include <QJsonArray>
 #include <QString>
 
+#include "architect/ProfileStore.h"
+
 #include <cmath>
 #include <optional>
 #include <string>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 namespace tb::architect
 {
@@ -76,6 +79,23 @@ QJsonObject makeSuccessResponse(QString id, QJsonObject result)
     {"protocol", qString(ProtocolVersion)},
     {"id", std::move(id)},
     {"result", std::move(result)},
+  };
+}
+
+QJsonObject profileToJson(const ArchitecturalProfile& profile)
+{
+  auto aliases = QJsonArray{};
+  for (const auto& alias : profile.aliases)
+  {
+    aliases.push_back(QString::fromStdString(alias));
+  }
+  return QJsonObject{
+    {"id", QString::fromStdString(profile.id)},
+    {"display_name", QString::fromStdString(profile.displayName)},
+    {"slug", QString::fromStdString(profile.slug)},
+    {"aliases", std::move(aliases)},
+    {"version", profile.version},
+    {"status", QString::fromStdString(profile.status)},
   };
 }
 
@@ -193,7 +213,7 @@ QJsonObject makeErrorResponse(QString id, const Error& error)
   };
 }
 
-QJsonObject handleRequest(const QJsonObject& request)
+QJsonObject handleRequest(const QJsonObject& request, ProfileStore* profileStore)
 {
   const auto id = request.value("id").toString();
   if (id.isEmpty() || id.size() > 128)
@@ -217,9 +237,105 @@ QJsonObject handleRequest(const QJsonObject& request)
         {"provider", "mock"},
         {"external_access", false},
         {"transport", "child_process_stdio"},
+        {"profiles_enabled", profileStore != nullptr},
       });
   }
 
+  if (method.startsWith("profiles.") && profileStore == nullptr)
+  {
+    return makeErrorResponse(
+      id, Error{ErrorCode::BridgeDisabled, "The profile store is unavailable."});
+  }
+
+  if (method == "profiles.list")
+  {
+    const auto profilesResult = profileStore->list();
+    if (const auto* error = std::get_if<Error>(&profilesResult))
+    {
+      return makeErrorResponse(id, *error);
+    }
+    const auto activeResult = profileStore->active();
+    if (const auto* error = std::get_if<Error>(&activeResult))
+    {
+      return makeErrorResponse(id, *error);
+    }
+
+    auto profiles = QJsonArray{};
+    for (const auto& profile :
+         std::get<std::vector<ArchitecturalProfile>>(profilesResult))
+    {
+      profiles.push_back(profileToJson(profile));
+    }
+    auto activeProfileId = QString{};
+    const auto& activeProfile =
+      std::get<std::optional<ArchitecturalProfile>>(activeResult);
+    if (activeProfile)
+    {
+      activeProfileId = QString::fromStdString(activeProfile->id);
+    }
+    return makeSuccessResponse(
+      id,
+      QJsonObject{
+        {"profiles", std::move(profiles)},
+        {"active_profile_id", std::move(activeProfileId)},
+      });
+  }
+
+  if (method == "profiles.create_draft")
+  {
+    const auto params = request.value("params").toObject();
+    const auto aliasesValue = params.value("aliases");
+    if (!aliasesValue.isUndefined() && !aliasesValue.isArray())
+    {
+      return makeErrorResponse(
+        id, Error{ErrorCode::InvalidArgument, "Profile aliases must be an array."});
+    }
+    auto aliases = std::vector<std::string>{};
+    for (const auto& value : aliasesValue.toArray())
+    {
+      if (!value.isString())
+      {
+        return makeErrorResponse(
+          id, Error{ErrorCode::InvalidArgument, "A profile alias is invalid."});
+      }
+      aliases.push_back(value.toString().toStdString());
+    }
+    auto result = profileStore->createDraft(
+      params.value("display_name").toString().toStdString(),
+      params.value("design_language").toString().toStdString(),
+      std::move(aliases));
+    if (const auto* error = std::get_if<Error>(&result))
+    {
+      return makeErrorResponse(id, *error);
+    }
+    return makeSuccessResponse(
+      id,
+      QJsonObject{{"profile", profileToJson(std::get<ArchitecturalProfile>(result))}});
+  }
+
+  if (method == "profiles.resolve" || method == "profiles.set_active")
+  {
+    const auto reference =
+      request.value("params").toObject().value("reference").toString().toStdString();
+    auto result = method == "profiles.resolve" ? profileStore->resolve(reference)
+                                               : profileStore->setActive(reference);
+    if (const auto* error = std::get_if<Error>(&result))
+    {
+      return makeErrorResponse(id, *error);
+    }
+    return makeSuccessResponse(
+      id,
+      QJsonObject{{"profile", profileToJson(std::get<ArchitecturalProfile>(result))}});
+  }
+
+  if (method == "profiles.clear_active")
+  {
+    if (const auto error = profileStore->clearActive())
+    {
+      return makeErrorResponse(id, *error);
+    }
+    return makeSuccessResponse(id, QJsonObject{{"cleared", true}});
+  }
   if (method == "plan.room")
   {
     const auto params = request.value("params").toObject();

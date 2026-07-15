@@ -13,13 +13,17 @@
 
 #include <QByteArray>
 #include <QCheckBox>
+#include <QComboBox>
 #include <QCoreApplication>
 #include <QDir>
 #include <QHBoxLayout>
+#include <QInputDialog>
+#include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonParseError>
 #include <QLabel>
+#include <QLineEdit>
 #include <QPlainTextEdit>
 #include <QProcess>
 #include <QPushButton>
@@ -34,6 +38,8 @@
 #include "mdl/Map.h"
 #include "ui/ArchitectBranding.h"
 #include "ui/MapDocument.h"
+#include "ui/QPathUtils.h"
+#include "ui/SystemPaths.h"
 
 #include "kd/overload.h"
 
@@ -118,6 +124,20 @@ void ArchitectPanel::createGui()
   m_writeEnabled->setObjectName("ArchitectPanel_WriteEnabled");
   m_writeEnabled->setChecked(false);
 
+  m_profileChoice = new QComboBox{};
+  m_profileChoice->setObjectName("ArchitectPanel_ProfileChoice");
+  m_profileChoice->addItem("No profile", QString{});
+  m_createProfileButton = new QPushButton{"Create Draft Profile"};
+  m_createProfileButton->setObjectName("ArchitectPanel_CreateProfile");
+  m_refreshProfilesButton = new QPushButton{"Refresh"};
+  m_refreshProfilesButton->setObjectName("ArchitectPanel_RefreshProfiles");
+
+  auto* profileLayout = new QHBoxLayout{};
+  profileLayout->addWidget(new QLabel{"Profile:"});
+  profileLayout->addWidget(m_profileChoice, 1);
+  profileLayout->addWidget(m_createProfileButton);
+  profileLayout->addWidget(m_refreshProfilesButton);
+
   m_planButton = new QPushButton{"Plan Room"};
   m_planButton->setObjectName("ArchitectPanel_PlanRoom");
   m_applyButton = new QPushButton{"Apply Blueprint"};
@@ -133,6 +153,9 @@ void ArchitectPanel::createGui()
   auto* layout = new QVBoxLayout{};
   layout->addWidget(new QLabel{"Provider: deterministic mock (no credentials)"});
   layout->addWidget(new QLabel{"Scale: 32 map units per metre"});
+  layout->addLayout(profileLayout);
+  layout->addWidget(new QLabel{
+    "Profile selection is saved; deterministic mock rooms are not profile-guided yet."});
   layout->addWidget(m_status);
   layout->addWidget(m_transcript, 1);
   layout->addWidget(m_prompt);
@@ -151,10 +174,20 @@ void ArchitectPanel::connectGui()
     stopRuntime("operation_cancelled");
   });
   connect(m_writeEnabled, &QCheckBox::toggled, this, [this]() { updateButtonState(); });
+  connect(m_createProfileButton, &QPushButton::clicked, this, [this]() {
+    createDraftProfile();
+  });
+  connect(m_refreshProfilesButton, &QPushButton::clicked, this, [this]() {
+    requestProfiles();
+  });
+  connect(m_profileChoice, &QComboBox::currentIndexChanged, this, [this]() {
+    selectProfile();
+  });
 
   connect(m_process, &QProcess::started, this, [this]() {
     m_status->setText("Runtime: connected locally by private child-process pipes");
     updateButtonState();
+    QTimer::singleShot(0, this, [this]() { requestProfiles(); });
   });
   connect(m_process, &QProcess::readyReadStandardOutput, this, [this]() {
     processStandardOutput();
@@ -171,6 +204,7 @@ void ArchitectPanel::connectGui()
     [this](const int, const QProcess::ExitStatus) {
       m_timeout->stop();
       m_pendingRequestId.clear();
+      m_pendingMethod.clear();
       m_status->setText("Runtime: stopped");
       updateButtonState();
       if (m_restartAfterStop)
@@ -203,7 +237,8 @@ void ArchitectPanel::startRuntime()
   m_responseBuffer.clear();
   m_status->setText("Runtime: starting");
   m_process->setProgram(runtimeExecutablePath());
-  m_process->setArguments({});
+  m_process->setArguments(
+    {"--profile-root", pathAsQString(SystemPaths::architectProfilesDirectory())});
   m_process->start(QIODevice::ReadWrite);
   updateButtonState();
 }
@@ -213,9 +248,10 @@ void ArchitectPanel::stopRuntime(QString reason)
   m_timeout->stop();
   if (!m_pendingRequestId.isEmpty() && reason == "operation_cancelled")
   {
-    appendError(std::move(reason), "The current planning request was cancelled.");
+    appendError(std::move(reason), "The current Architect operation was cancelled.");
   }
   m_pendingRequestId.clear();
+  m_pendingMethod.clear();
   m_pendingBlueprint.reset();
   if (m_process->state() != QProcess::NotRunning)
   {
@@ -234,6 +270,9 @@ void ArchitectPanel::updateButtonState()
   m_applyButton->setEnabled(
     !busy && m_writeEnabled->isChecked() && m_pendingBlueprint.has_value());
   m_stopButton->setEnabled(connected && busy);
+  m_profileChoice->setEnabled(connected && !busy);
+  m_createProfileButton->setEnabled(connected && !busy);
+  m_refreshProfilesButton->setEnabled(connected && !busy);
 }
 
 void ArchitectPanel::planRoom()
@@ -252,34 +291,14 @@ void ArchitectPanel::planRoom()
   }
 
   m_pendingBlueprint.reset();
-  m_pendingRequestId = QString{"room-%1"}.arg(m_nextRequestId++);
   appendUserMessage(prompt);
-
-  const auto request = QJsonObject{
-    {"protocol", "architect/1"},
-    {"id", m_pendingRequestId},
-    {"method", "plan.room"},
-    {"params",
-     QJsonObject{
-       {"prompt", prompt},
-       {"units_per_metre", DefaultUnitsPerMetre},
-       {"material", QString::fromStdString(m_document.map().currentMaterialName())},
-     }},
-  };
-  auto bytes = QJsonDocument{request}.toJson(QJsonDocument::Compact);
-  bytes.append('\n');
-  if (
-    bytes.size() > static_cast<qsizetype>(architect::MaximumRequestBytes)
-    || m_process->write(bytes) != bytes.size())
-  {
-    m_pendingRequestId.clear();
-    appendError("invalid_request", "The request could not be sent safely.");
-    updateButtonState();
-    return;
-  }
-
-  m_timeout->start();
-  updateButtonState();
+  sendRequest(
+    "plan.room",
+    QJsonObject{
+      {"prompt", prompt},
+      {"units_per_metre", DefaultUnitsPerMetre},
+      {"material", QString::fromStdString(m_document.map().currentMaterialName())},
+    });
 }
 
 void ArchitectPanel::applyRoom()
@@ -340,6 +359,109 @@ void ArchitectPanel::processStandardOutput()
   }
 }
 
+void ArchitectPanel::requestProfiles()
+{
+  if (m_process->state() != QProcess::Running || !m_pendingRequestId.isEmpty())
+  {
+    return;
+  }
+  sendRequest("profiles.list", QJsonObject{});
+}
+
+void ArchitectPanel::createDraftProfile()
+{
+  const auto designLanguage = m_prompt->toPlainText().trimmed();
+  if (designLanguage.isEmpty())
+  {
+    appendError(
+      "invalid_argument",
+      "Describe the design language in the prompt box before creating a profile.");
+    return;
+  }
+
+  auto accepted = false;
+  const auto displayName =
+    QInputDialog::getText(
+      this, "Create Draft Profile", "Profile name:", QLineEdit::Normal, {}, &accepted)
+      .trimmed();
+  if (!accepted)
+  {
+    return;
+  }
+  if (displayName.isEmpty())
+  {
+    appendError("invalid_argument", "Enter a profile name.");
+    return;
+  }
+
+  sendRequest(
+    "profiles.create_draft",
+    QJsonObject{
+      {"display_name", displayName},
+      {"design_language", designLanguage},
+      {"aliases", QJsonArray{}},
+    });
+}
+
+void ArchitectPanel::selectProfile()
+{
+  if (
+    m_updatingProfiles || m_process->state() != QProcess::Running
+    || !m_pendingRequestId.isEmpty())
+  {
+    return;
+  }
+
+  const auto reference = m_profileChoice->currentData().toString();
+  if (reference.isEmpty())
+  {
+    sendRequest("profiles.clear_active", QJsonObject{});
+  }
+  else
+  {
+    sendRequest("profiles.set_active", QJsonObject{{"reference", reference}});
+  }
+}
+
+void ArchitectPanel::sendRequest(QString method, QJsonObject params)
+{
+  if (m_process->state() != QProcess::Running)
+  {
+    appendError("runtime_unavailable", "The bundled runtime is not connected.");
+    startRuntime();
+    return;
+  }
+  if (!m_pendingRequestId.isEmpty())
+  {
+    appendError("operation_busy", "Wait for the current Architect operation to finish.");
+    return;
+  }
+
+  m_pendingRequestId = QString{"request-%1"}.arg(m_nextRequestId++);
+  m_pendingMethod = method;
+  const auto request = QJsonObject{
+    {"protocol", "architect/1"},
+    {"id", m_pendingRequestId},
+    {"method", std::move(method)},
+    {"params", std::move(params)},
+  };
+  auto bytes = QJsonDocument{request}.toJson(QJsonDocument::Compact);
+  bytes.append('\n');
+  if (
+    bytes.size() > static_cast<qsizetype>(architect::MaximumRequestBytes)
+    || m_process->write(bytes) != bytes.size())
+  {
+    m_pendingRequestId.clear();
+    m_pendingMethod.clear();
+    appendError("invalid_request", "The request could not be sent safely.");
+    updateButtonState();
+    return;
+  }
+
+  m_timeout->start();
+  updateButtonState();
+}
+
 void ArchitectPanel::handleResponse(const QByteArray& line)
 {
   auto parseError = QJsonParseError{};
@@ -360,7 +482,9 @@ void ArchitectPanel::handleResponse(const QByteArray& line)
     stopRuntime("unsupported_protocol");
     return;
   }
+
   m_pendingRequestId.clear();
+  const auto method = std::exchange(m_pendingMethod, QString{});
   const auto response = document.object();
   const auto error = response.value("error").toObject();
   if (!error.isEmpty())
@@ -370,8 +494,69 @@ void ArchitectPanel::handleResponse(const QByteArray& line)
     return;
   }
 
-  const auto blueprintJson =
-    response.value("result").toObject().value("blueprint").toObject();
+  const auto result = response.value("result").toObject();
+  if (method == "profiles.list")
+  {
+    handleProfilesResponse(result);
+    return;
+  }
+  if (method == "profiles.create_draft")
+  {
+    const auto profile = result.value("profile").toObject();
+    const auto version = profile.value("version").toInt();
+    if (
+      profile.value("id").toString().isEmpty()
+      || profile.value("display_name").toString().isEmpty()
+      || profile.value("slug").toString().isEmpty()
+      || profile.value("status").toString() != "draft" || version < 1)
+    {
+      appendError("invalid_response", "The runtime returned an invalid profile.");
+      stopRuntime("invalid_response");
+      return;
+    }
+    appendArchitectMessage(QString{"Saved draft profile %1 (version %2)."}
+                             .arg(profile.value("display_name").toString())
+                             .arg(version));
+    requestProfiles();
+    return;
+  }
+  if (method == "profiles.set_active")
+  {
+    const auto profile = result.value("profile").toObject();
+    const auto displayName = profile.value("display_name").toString();
+    if (displayName.isEmpty())
+    {
+      appendError("invalid_response", "The runtime returned an invalid profile.");
+      stopRuntime("invalid_response");
+      return;
+    }
+    appendArchitectMessage(
+      QString{"Active profile: %1. Selection is saved; mock room planning does not "
+              "apply profile rules yet."}
+        .arg(displayName));
+    requestProfiles();
+    return;
+  }
+  if (method == "profiles.clear_active")
+  {
+    if (!result.value("cleared").toBool())
+    {
+      appendError("invalid_response", "The runtime did not confirm profile selection.");
+      stopRuntime("invalid_response");
+      return;
+    }
+    appendArchitectMessage("No active profile. Selection is saved.");
+    requestProfiles();
+    return;
+  }
+  if (method != "plan.room")
+  {
+    appendError("invalid_response", "The runtime response method was unexpected.");
+    stopRuntime("invalid_response");
+    return;
+  }
+
+  const auto blueprintJson = result.value("blueprint").toObject();
   auto parsed = architect::roomBlueprintFromJson(blueprintJson);
   if (const auto* blueprint = std::get_if<architect::RoomBlueprint>(&parsed))
   {
@@ -388,6 +573,75 @@ void ArchitectPanel::handleResponse(const QByteArray& line)
   {
     const auto& value = std::get<architect::Error>(parsed);
     appendError(errorCodeString(value.code), QString::fromStdString(value.message));
+  }
+  updateButtonState();
+}
+
+void ArchitectPanel::handleProfilesResponse(const QJsonObject& result)
+{
+  const auto profilesValue = result.value("profiles");
+  const auto activeProfileValue = result.value("active_profile_id");
+  if (!profilesValue.isArray() || !activeProfileValue.isString())
+  {
+    appendError("invalid_response", "The runtime returned an invalid profile list.");
+    stopRuntime("invalid_response");
+    return;
+  }
+
+  struct ProfileChoice
+  {
+    QString id;
+    QString displayName;
+    QString slug;
+  };
+  auto profiles = std::vector<ProfileChoice>{};
+  for (const auto& value : profilesValue.toArray())
+  {
+    const auto profile = value.toObject();
+    const auto versionValue = profile.value("version");
+    const auto version = versionValue.toInt();
+    const auto choice = ProfileChoice{
+      .id = profile.value("id").toString(),
+      .displayName = profile.value("display_name").toString(),
+      .slug = profile.value("slug").toString(),
+    };
+    if (
+      !value.isObject() || choice.id.isEmpty() || choice.displayName.isEmpty()
+      || choice.slug.isEmpty() || profile.value("status").toString() != "draft"
+      || !versionValue.isDouble() || version < 1
+      || versionValue.toDouble() != static_cast<double>(version))
+    {
+      appendError("invalid_response", "The runtime returned an invalid profile list.");
+      stopRuntime("invalid_response");
+      return;
+    }
+    profiles.push_back(choice);
+  }
+
+  const auto activeProfileId = activeProfileValue.toString();
+  auto activeIndex = 0;
+  m_updatingProfiles = true;
+  m_profileChoice->clear();
+  m_profileChoice->addItem("No profile", QString{});
+  for (const auto& profile : profiles)
+  {
+    m_profileChoice->addItem(
+      QString{"%1 (Draft)"}.arg(profile.displayName), profile.slug);
+    const auto index = m_profileChoice->count() - 1;
+    m_profileChoice->setItemData(index, profile.id, Qt::UserRole + 1);
+    if (profile.id == activeProfileId)
+    {
+      activeIndex = index;
+    }
+  }
+  m_profileChoice->setCurrentIndex(activeIndex);
+  m_updatingProfiles = false;
+
+  if (!activeProfileId.isEmpty() && activeIndex == 0)
+  {
+    appendError("invalid_response", "The active profile was not present in the list.");
+    stopRuntime("invalid_response");
+    return;
   }
   updateButtonState();
 }

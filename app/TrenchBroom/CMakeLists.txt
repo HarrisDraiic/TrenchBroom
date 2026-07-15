@@ -109,6 +109,7 @@ get_build_platform(APP_PLATFORM_NAME)
 
 # Create the executable target and link with libraries
 add_executable(TrenchBroom WIN32 MACOSX_BUNDLE)
+add_dependencies(TrenchBroom ArchitectRuntime)
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Linux|FreeBSD")
     set_target_properties(TrenchBroom PROPERTIES OUTPUT_NAME "${TB_PRODUCT_LINUX_EXECUTABLE_NAME}")
@@ -117,6 +118,10 @@ else()
 endif()
 
 target_sources(TrenchBroom PRIVATE ${APP_SOURCE} ${INDEX_OUTPUT_PATH} ${DOC_MANUAL_TARGET_FILES_ABSOLUTE} ${DOC_MANUAL_SHORTCUTS_JS_TARGET_ABSOLUTE} ${DOC_MANUAL_TARGET_IMAGE_FILES_ABSOLUTE})
+
+add_custom_command(TARGET TrenchBroom POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "$<TARGET_FILE:ArchitectRuntime>" "$<TARGET_FILE_DIR:TrenchBroom>")
 
 if(APPLE)
     target_sources(TrenchBroom PRIVATE "$<$<CONFIG:Debug>:${MACOSX_GAME_TESTING_SOURCE_FILES}>")
@@ -344,7 +349,7 @@ if(WIN32)
             CONFIGURATIONS Release)
     endif()
 
-    install(TARGETS TrenchBroom RUNTIME DESTINATION . COMPONENT TrenchBroom)
+    install(TARGETS TrenchBroom ArchitectRuntime RUNTIME DESTINATION . COMPONENT TrenchBroom)
     install(FILES "${CMAKE_SOURCE_DIR}/LICENSE.txt" DESTINATION . COMPONENT TrenchBroom)
     install(CODE [[
         # The regexes are a workaround for https://gitlab.kitware.com/cmake/cmake/-/issues/22431
@@ -463,7 +468,7 @@ elseif(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     configure_file(${TB_RESOURCE_DIR}/linux/postrm ${CMAKE_CURRENT_BINARY_DIR}/linux/postrm @ONLY)
 
     # add files
-    install(TARGETS TrenchBroom RUNTIME DESTINATION bin COMPONENT TrenchBroom)
+    install(TARGETS TrenchBroom ArchitectRuntime RUNTIME DESTINATION bin COMPONENT TrenchBroom)
     install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/fonts"           DESTINATION ${LINUX_RESOURCE_LOCATION} COMPONENT TrenchBroom)
     install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/defaults"        DESTINATION ${LINUX_RESOURCE_LOCATION} COMPONENT TrenchBroom)
     install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/games"           DESTINATION ${LINUX_RESOURCE_LOCATION} COMPONENT TrenchBroom)

@@ -1,3 +1,4 @@
+add_subdirectory(ArchitectRuntime)
 add_subdirectory(CmdTool)
 add_subdirectory(DumpShortcuts)
 add_subdirectory(TrenchBroom)

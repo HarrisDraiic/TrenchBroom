@@ -23,6 +23,7 @@
 #include <QChildEvent>
 #include <QClipboard>
 #include <QComboBox>
+#include <QDockWidget>
 #include <QFileDialog>
 #include <QInputDialog>
 #include <QLabel>
@@ -80,6 +81,7 @@
 #include "ui/ActionManager.h"
 #include "ui/AppController.h"
 #include "ui/ArchitectBranding.h"
+#include "ui/ArchitectPanel.h"
 #include "ui/ChoosePathTypeDialog.h"
 #include "ui/ClipTool.h"
 #include "ui/ColorButton.h"
@@ -308,9 +310,10 @@ void MapWindow::updateTitle()
 {
   const auto& map = m_document->map();
   setWindowModified(map.modified());
-  setWindowTitle(
-    tr("%1[*] - %2")
-      .arg(pathAsQString(map.filename()), QString::fromUtf8(ArchitectBranding::DisplayName)));
+  setWindowTitle(tr("%1[*] - %2")
+                   .arg(
+                     pathAsQString(map.filename()),
+                     QString::fromUtf8(ArchitectBranding::DisplayName)));
   setWindowFilePath(pathAsQPath(map.path()));
 }
 
@@ -481,6 +484,16 @@ void MapWindow::createGui()
   layoutWrapper->setLayout(windowLayout);
 
   setCentralWidget(layoutWrapper);
+
+  m_architectPanel = new ArchitectPanel{document()};
+  m_architectDock = new QDockWidget{tr("AI Architect"), this};
+  m_architectDock->setObjectName("MapWindow_AIArchitectDock");
+  m_architectDock->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
+  m_architectDock->setFeatures(
+    QDockWidget::DockWidgetClosable | QDockWidget::DockWidgetFloatable
+    | QDockWidget::DockWidgetMovable);
+  m_architectDock->setWidget(m_architectPanel);
+  addDockWidget(Qt::LeftDockWidgetArea, m_architectDock);
 
   restoreWidgetState(m_hSplitter);
   restoreWidgetState(m_vSplitter);

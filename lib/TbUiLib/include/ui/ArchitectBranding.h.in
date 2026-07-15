@@ -30,6 +30,9 @@ inline constexpr auto LinuxExecutableName = "@TB_PRODUCT_LINUX_EXECUTABLE_NAME@"
 inline constexpr auto LinuxResourceName = "@TB_PRODUCT_LINUX_RESOURCE_NAME@";
 inline constexpr auto LogFilename = "@TB_PRODUCT_LOG_FILENAME@";
 inline constexpr auto UpdateLogFilename = "@TB_PRODUCT_UPDATE_LOG_FILENAME@";
+inline constexpr auto RuntimeExecutableName = "@TB_ARCHITECT_RUNTIME_EXECUTABLE_NAME@";
+inline constexpr auto RuntimeLinuxExecutableName =
+  "@TB_ARCHITECT_RUNTIME_LINUX_EXECUTABLE_NAME@";
 inline constexpr auto UpdatesEnabled = @TB_PRODUCT_UPDATES_ENABLED@;
 
 inline constexpr auto ArchitectDirectoryName = "Architect";

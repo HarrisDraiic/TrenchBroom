@@ -4,6 +4,7 @@ target_sources(TbMdlLib
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/AddRemoveNodesCommand.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/AddRemoveNodesUtils.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/ArchitectRoomBuilder.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/Autosaver.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/BasicShapes.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/BezierPatch.cpp
@@ -204,6 +205,8 @@ target_sources(TbMdlLib
 
   PUBLIC FILE_SET headers TYPE HEADERS
     BASE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/include
+    FILES
+      ${CMAKE_CURRENT_SOURCE_DIR}/include/mdl/ArchitectRoomBuilder.h
 )
 
 target_link_libraries(TbMdlLib
@@ -215,6 +218,7 @@ target_link_libraries(TbMdlLib
     miniz::miniz
     tinyxml2::tinyxml2
   PUBLIC
+    ArchitectLib
     fmt::fmt-header-only
     KdLib
     TbBaseLib

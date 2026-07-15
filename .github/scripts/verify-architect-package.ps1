@@ -26,7 +26,11 @@ try {
     $archive.Entries | ForEach-Object { $_.FullName.Replace("\", "/") }
   )
 
-  foreach ($requiredEntry in @("TrenchBroomArchitect.exe", "LICENSE.txt")) {
+  foreach ($requiredEntry in @(
+    "TrenchBroomArchitect.exe",
+    "TrenchBroomArchitectRuntime.exe",
+    "LICENSE.txt"
+  )) {
     if ($requiredEntry -notin $entryNames) {
       throw "Package is missing required entry '$requiredEntry'."
     }

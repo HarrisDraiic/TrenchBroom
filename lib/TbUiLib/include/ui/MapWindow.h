@@ -36,6 +36,7 @@
 class QAction;
 class QComboBox;
 class QDropEvent;
+class QDockWidget;
 class QMenuBar;
 class QLabel;
 class QSplitter;
@@ -70,6 +71,7 @@ struct SelectionChange;
 namespace ui
 {
 class Action;
+class ArchitectPanel;
 class AppController;
 class CompilationDialog;
 class Console;
@@ -108,6 +110,8 @@ private:
   InfoPanel* m_infoPanel = nullptr;
   Console* m_console = nullptr;
   Inspector* m_inspector = nullptr;
+  QDockWidget* m_architectDock = nullptr;
+  ArchitectPanel* m_architectPanel = nullptr;
 
   QComboBox* m_gridChoice = nullptr;
   QLabel* m_statusBarLabel = nullptr;

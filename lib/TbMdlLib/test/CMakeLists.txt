@@ -1,6 +1,7 @@
 add_executable(TbMdlLibTest)
 
 target_sources(TbMdlLibTest PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/tst_ArchitectRoomBuilder.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/tst_AssetUtils.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/tst_Autosaver.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/tst_BezierPatch.cpp

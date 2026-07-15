@@ -1,5 +1,11 @@
 add_library(TbUiLib STATIC)
 
+configure_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/ArchitectBranding.h.in
+  ${CMAKE_CURRENT_BINARY_DIR}/generated/ui/ArchitectBranding.h
+  @ONLY
+)
+
 target_sources(TbUiLib
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/AboutDialog.cpp
@@ -11,6 +17,7 @@ target_sources(TbUiLib
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ActionManager.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ActionMenu.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/Animation.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/ArchitectPanel.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/AppController.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/AppInfoPanel.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/AssembleBrushTool.cpp
@@ -245,6 +252,7 @@ target_sources(TbUiLib
     ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/ActionManager.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/ActionMenu.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/Animation.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/ArchitectPanel.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/AppController.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/AppInfoPanel.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/AssembleBrushTool.h
@@ -475,6 +483,11 @@ target_sources(TbUiLib
   
   PRIVATE FILE_SET version_header TYPE HEADERS
     BASE_DIRS ${CMAKE_CURRENT_BINARY_DIR}/generated
+
+  PUBLIC FILE_SET branding_header TYPE HEADERS
+    BASE_DIRS ${CMAKE_CURRENT_BINARY_DIR}/generated
+    FILES
+      ${CMAKE_CURRENT_BINARY_DIR}/generated/ui/ArchitectBranding.h
 )
 
 target_link_libraries(TbUiLib 
@@ -486,6 +499,7 @@ target_link_libraries(TbUiLib
     ctre::ctre
     Qt6::Svg
   PUBLIC
+    ArchitectLib
     KdLib
     Qt6::Network
     Qt6::OpenGL

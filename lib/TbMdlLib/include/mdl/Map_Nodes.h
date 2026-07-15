@@ -21,6 +21,7 @@
 
 #include "mdl/NodeContents.h"
 
+#include <string>
 #include <vector>
 
 namespace tb::mdl
@@ -39,7 +40,10 @@ class Node;
  */
 Node* parentForNodes(const Map& map, const std::vector<Node*>& nodes = {});
 
-std::vector<Node*> addNodes(Map& map, const std::map<Node*, std::vector<Node*>>& nodes);
+std::vector<Node*> addNodes(
+  Map& map,
+  const std::map<Node*, std::vector<Node*>>& nodes,
+  std::string commandName = "Add Objects");
 
 void duplicateSelectedNodes(Map& map);
 

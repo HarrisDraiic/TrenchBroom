@@ -28,6 +28,7 @@
 #include "Macros.h" // IWYU pragma: keep
 #include "PreferenceManager.h"
 #include "Preferences.h"
+#include "ui/ArchitectBranding.h"
 #include "ui/GetVersion.h"
 #include "ui/QPathUtils.h"
 #include "ui/SystemPaths.h"
@@ -38,6 +39,7 @@
 
 #include <cstdlib>
 #include <filesystem>
+#include <string>
 #include <string_view> // IWYU pragma: keep
 
 namespace tb::ui
@@ -47,6 +49,11 @@ namespace
 
 bool shouldEnableUpdating()
 {
+  if constexpr (!ArchitectBranding::UpdatesEnabled)
+  {
+    return false;
+  }
+
   if (SystemPaths::isPortable())
   {
     return false;
@@ -119,9 +126,11 @@ bool getRequiresAdminPrivileges([[maybe_unused]] const std::filesystem::path& ta
 auto getRelativeAppPath()
 {
 #if defined(Q_OS_WIN)
-  return std::filesystem::path{"trenchbroom.exe"};
+  return std::filesystem::path{
+    std::string{ArchitectBranding::ExecutableName} + ".exe"};
 #elif defined(Q_OS_MACOS)
-  return std::filesystem::path{"Contents/MacOS/TrenchBroom"};
+  return std::filesystem::path{"Contents/MacOS"}
+         / ArchitectBranding::ExecutableName;
 #else
   return std::filesystem::path{};
 #endif
@@ -129,12 +138,13 @@ auto getRelativeAppPath()
 
 auto getWorkDirPath()
 {
-  return SystemPaths::tempDirectory() / "TrenchBroom-update";
+  return SystemPaths::tempDirectory()
+         / (std::string{ArchitectBranding::ApplicationName} + "-update");
 }
 
 auto getLogFilePath()
 {
-  return SystemPaths::userDataDirectory() / "TrenchBroom-update.log";
+  return SystemPaths::userDataDirectory() / ArchitectBranding::UpdateLogFilename;
 }
 
 auto makeCheckForUpdates(const UpdateVersion& currentVersion)
@@ -224,7 +234,7 @@ std::optional<upd::UpdateConfig> makeUpdateConfig()
     std::move(prepareUpdate),
     std::move(installUpdate),
 
-    "TrenchBroom",
+    "HarrisDraiic",
     "TrenchBroom",
     pathAsQPath(scriptPath),
     pathAsQPath(*appFolderPath),

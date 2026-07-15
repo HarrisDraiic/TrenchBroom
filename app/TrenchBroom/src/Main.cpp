@@ -37,6 +37,7 @@
 #include "ui/ActionBuilder.h"
 #include "ui/ActionExecutionContext.h"
 #include "ui/AppController.h"
+#include "ui/ArchitectBranding.h"
 #include "ui/Contracts.h"
 #include "ui/CrashReporter.h"
 #include "ui/FileEventFilter.h"
@@ -309,11 +310,12 @@ int main(int argc, char* argv[])
   }
 
   // Needs to be set before creating the preference manager
-  QApplication::setApplicationName("TrenchBroom");
+  QApplication::setApplicationName(ArchitectBranding::ApplicationName);
+  QApplication::setApplicationDisplayName(ArchitectBranding::DisplayName);
   // Needs to be "" otherwise Qt adds this to the paths returned by QStandardPaths
   // which would cause preferences to move from where they were with wx
   QApplication::setOrganizationName("");
-  QApplication::setOrganizationDomain("io.github.trenchbroom");
+  QApplication::setOrganizationDomain(ArchitectBranding::OrganizationDomain);
 
   // QApplication must be created before QPreferenceStore because QPreferenceStore uses
   // QFileSystemWatcher, which requires a QApplication instance

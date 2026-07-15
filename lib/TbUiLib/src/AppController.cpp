@@ -42,6 +42,7 @@
 #include "mdl/GameManager.h"
 #include "mdl/MapHeader.h"
 #include "ui/AboutDialog.h"
+#include "ui/ArchitectBranding.h"
 #include "ui/ActionManager.h"
 #include "ui/CrashDialog.h"
 #include "ui/FileDialogDefaultDir.h"
@@ -99,7 +100,10 @@ auto createGameManager()
                  kdl::str_join(warnings, "\n\n"));
 
                QMessageBox::critical(
-                 nullptr, "TrenchBroom", QString::fromStdString(msg), QMessageBox::Ok);
+                 nullptr,
+                 ArchitectBranding::DisplayName,
+                 QString::fromStdString(msg),
+                 QMessageBox::Ok);
              }
 
              return std::make_unique<mdl::GameManager>(std::move(gameManager));
@@ -251,6 +255,11 @@ ActionManager& AppController::actionManager()
 
 void AppController::askForAutoUpdates()
 {
+  if constexpr (!ArchitectBranding::UpdatesEnabled)
+  {
+    return;
+  }
+
   if (pref(Preferences::AskForAutoUpdates))
   {
     auto& prefs = PreferenceManager::instance();
@@ -258,9 +267,9 @@ void AppController::askForAutoUpdates()
     const auto enableAutoCheck =
       QMessageBox::question(
         nullptr,
-        "TrenchBroom",
-        tr(
-          R"(TrenchBroom can check for updates automatically. Would you like to enable this now?)"),
+        ArchitectBranding::DisplayName,
+        tr("%1 can check for updates automatically. Would you like to enable this now?")
+          .arg(QString::fromUtf8(ArchitectBranding::DisplayName)),
         QMessageBox::Yes | QMessageBox::No)
       == QMessageBox::Yes;
 
@@ -272,6 +281,11 @@ void AppController::askForAutoUpdates()
 
 void AppController::triggerAutoUpdateCheck()
 {
+  if constexpr (!ArchitectBranding::UpdatesEnabled)
+  {
+    return;
+  }
+
   if (pref(Preferences::AutoCheckForUpdates))
   {
     m_updater->checkForUpdates();
@@ -298,7 +312,7 @@ bool AppController::newDocument()
            })
          | kdl::transform_error([&](const auto& e) {
              QMessageBox::critical(
-               nullptr, "TrenchBroom", e.msg.c_str(), QMessageBox::Ok);
+               nullptr, ArchitectBranding::DisplayName, e.msg.c_str(), QMessageBox::Ok);
              return false;
            })
          | kdl::value();
@@ -359,7 +373,7 @@ bool AppController::openDocument(const std::filesystem::path& path)
            })
          | kdl::transform_error([&](const auto& e) {
              QMessageBox::critical(
-               nullptr, "TrenchBroom", e.msg.c_str(), QMessageBox::Ok);
+               nullptr, ArchitectBranding::DisplayName, e.msg.c_str(), QMessageBox::Ok);
              return false;
            })
          | kdl::value();

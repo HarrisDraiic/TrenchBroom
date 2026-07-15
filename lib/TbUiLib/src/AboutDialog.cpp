@@ -23,6 +23,7 @@
 #include <QLabel>
 
 #include "ui/AppInfoPanel.h"
+#include "ui/ArchitectBranding.h"
 #include "ui/QStyleUtils.h"
 
 namespace tb::ui
@@ -38,8 +39,12 @@ AboutDialog::AboutDialog(AppController& appController)
 
 void AboutDialog::createGui()
 {
+  setWindowTitle(tr("About %1").arg(QString::fromUtf8(ArchitectBranding::DisplayName)));
   const auto creditsString = tr(R"(
-github.com/TrenchBroom/TrenchBroom<br />
+Unofficial fork: github.com/HarrisDraiic/TrenchBroom<br />
+Based on TrenchBroom: github.com/TrenchBroom/TrenchBroom<br />
+<br />
+Not affiliated with or endorsed by the TrenchBroom project.<br />
 <br />
 <b>Developers</b><br />
 <br />

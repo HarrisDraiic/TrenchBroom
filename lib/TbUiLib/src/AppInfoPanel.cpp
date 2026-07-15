@@ -27,6 +27,7 @@
 #include <QVBoxLayout>
 
 #include "ui/AppController.h"
+#include "ui/ArchitectBranding.h"
 #include "ui/BorderLine.h"
 #include "ui/ClickableLabel.h"
 #include "ui/GetVersion.h"
@@ -45,11 +46,11 @@ AppInfoPanel::AppInfoPanel(AppController& appController, QWidget* parent)
   auto* appIcon = new QLabel{};
   appIcon->setPixmap(appIconImage);
 
-  auto* appName = new QLabel{tr("TrenchBroom")};
+  auto* appName = new QLabel{QString::fromUtf8(ArchitectBranding::DisplayName)};
   setHeaderStyle(appName);
 
   auto* appLine = new BorderLine{};
-  auto* appClaim = new QLabel{tr("Level Editor")};
+  auto* appClaim = new QLabel{tr("AI-Assisted Level Editor - Unofficial TrenchBroom Fork")};
 
   auto version = new ClickableLabel{tr("Version %1").arg(getBuildVersion())};
   auto build = new ClickableLabel{tr("Build %1").arg(getBuildIdStr())};
@@ -100,8 +101,9 @@ AppInfoPanel::AppInfoPanel(AppController& appController, QWidget* parent)
 
 void AppInfoPanel::versionInfoClicked()
 {
-  const auto str =
-    tr("TrenchBroom %1 Build %2").arg(getBuildVersion()).arg(getBuildIdStr());
+  const auto str = tr("%1 %2 Build %3")
+                     .arg(QString::fromUtf8(ArchitectBranding::DisplayName))
+                     .arg(getBuildVersion(), getBuildIdStr());
 
   QApplication::clipboard()->setText(str);
 }

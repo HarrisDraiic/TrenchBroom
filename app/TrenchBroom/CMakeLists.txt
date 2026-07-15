@@ -109,7 +109,19 @@ get_build_platform(APP_PLATFORM_NAME)
 
 # Create the executable target and link with libraries
 add_executable(TrenchBroom WIN32 MACOSX_BUNDLE)
+add_dependencies(TrenchBroom ArchitectRuntime)
+
+if(${CMAKE_SYSTEM_NAME} MATCHES "Linux|FreeBSD")
+    set_target_properties(TrenchBroom PROPERTIES OUTPUT_NAME "${TB_PRODUCT_LINUX_EXECUTABLE_NAME}")
+else()
+    set_target_properties(TrenchBroom PROPERTIES OUTPUT_NAME "${TB_PRODUCT_EXECUTABLE_NAME}")
+endif()
+
 target_sources(TrenchBroom PRIVATE ${APP_SOURCE} ${INDEX_OUTPUT_PATH} ${DOC_MANUAL_TARGET_FILES_ABSOLUTE} ${DOC_MANUAL_SHORTCUTS_JS_TARGET_ABSOLUTE} ${DOC_MANUAL_TARGET_IMAGE_FILES_ABSOLUTE})
+
+add_custom_command(TARGET TrenchBroom POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "$<TARGET_FILE:ArchitectRuntime>" "$<TARGET_FILE_DIR:TrenchBroom>")
 
 if(APPLE)
     target_sources(TrenchBroom PRIVATE "$<$<CONFIG:Debug>:${MACOSX_GAME_TESTING_SOURCE_FILES}>")
@@ -144,7 +156,8 @@ set_target_properties(TrenchBroom PROPERTIES AUTORCC TRUE)
 if(APPLE)
     # Configure variables that are substituted into the plist
     # Set CFBundleName, which controls the application menu label
-    set_target_properties(TrenchBroom PROPERTIES MACOSX_BUNDLE_BUNDLE_NAME "TrenchBroom")
+    set_target_properties(TrenchBroom PROPERTIES MACOSX_BUNDLE_BUNDLE_NAME "${TB_PRODUCT_DISPLAY_NAME}")
+    set_target_properties(TrenchBroom PROPERTIES MACOSX_BUNDLE_GUI_IDENTIFIER "${TB_PRODUCT_BUNDLE_IDENTIFIER}")
     # Set CFBundleShortVersionString to "2.0.0". This is displayed in the Finder and Spotlight.
     set_target_properties(TrenchBroom PROPERTIES MACOSX_BUNDLE_SHORT_VERSION_STRING "${CPACK_PACKAGE_VERSION}")
     # Set CFBundleVersion to the git describe output. Apple docs say it should be "three non-negative, period-separated integers with the first integer being greater than zero"
@@ -231,13 +244,7 @@ endif()
 
 # Generate a small stripped PDB for release builds so we get stack traces with symbols
 if(COMPILER_IS_MSVC)
-    set_target_properties(TrenchBroom PROPERTIES LINK_FLAGS_RELEASE "/DEBUG /PDBSTRIPPED:app/TrenchBroom/TrenchBroom-stripped.pdb /PDBALTPATH:TrenchBroom-stripped.pdb")
-endif()
-
-if(${CMAKE_SYSTEM_NAME} MATCHES "Linux|FreeBSD")
-    # Make executable name conventional lowercase on linux
-    string(TOLOWER TrenchBroom APP_TARGET_NAME_LOWER)
-    set_target_properties(TrenchBroom PROPERTIES OUTPUT_NAME ${APP_TARGET_NAME_LOWER})
+    set_target_properties(TrenchBroom PROPERTIES LINK_FLAGS_RELEASE "/DEBUG /PDBSTRIPPED:app/TrenchBroom/${TB_PRODUCT_EXECUTABLE_NAME}-stripped.pdb /PDBALTPATH:${TB_PRODUCT_EXECUTABLE_NAME}-stripped.pdb")
 endif()
 
 function(tb_add_post_build_copy_directory target source destination)
@@ -321,10 +328,10 @@ if(WIN32 OR ${CMAKE_SYSTEM_NAME} MATCHES "Linux|FreeBSD")
 endif()
 
 # Common CPack configuration
-set(APP_PACKAGE_FILE_NAME "TrenchBroom-${APP_PLATFORM_NAME}-${CMAKE_SYSTEM_PROCESSOR}-${GIT_DESCRIBE}-${CMAKE_BUILD_TYPE}")
+set(APP_PACKAGE_FILE_NAME "${TB_PRODUCT_PACKAGE_PREFIX}-${APP_PLATFORM_NAME}-${CMAKE_SYSTEM_PROCESSOR}-${GIT_DESCRIBE}-${CMAKE_BUILD_TYPE}")
 set(CPACK_PACKAGE_FILE_NAME ${APP_PACKAGE_FILE_NAME})
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "TrenchBroom Level Editor")
-set(CPACK_PACKAGE_VENDOR "TrenchBroom")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "${TB_PRODUCT_DESCRIPTION}")
+set(CPACK_PACKAGE_VENDOR "${TB_PRODUCT_VENDOR}")
 # We want stack trace symbols even in our release builds, so don't strip.
 set(CPACK_STRIP_FILES FALSE)
 
@@ -333,16 +340,17 @@ if(WIN32)
     # Copy PDB files (msvc debug symbols)
     if(COMPILER_IS_MSVC)
         install(FILES
-            "$<TARGET_FILE_DIR:TrenchBroom>/TrenchBroom.pdb"
+            "$<TARGET_FILE_DIR:TrenchBroom>/${TB_PRODUCT_EXECUTABLE_NAME}.pdb"
             DESTINATION . COMPONENT TrenchBroom
             CONFIGURATIONS Debug RelWithDebInfo)
         install(FILES
-            "$<TARGET_FILE_DIR:TrenchBroom>/TrenchBroom-stripped.pdb"
+            "$<TARGET_FILE_DIR:TrenchBroom>/${TB_PRODUCT_EXECUTABLE_NAME}-stripped.pdb"
             DESTINATION . COMPONENT TrenchBroom
             CONFIGURATIONS Release)
     endif()
 
-    install(TARGETS TrenchBroom RUNTIME DESTINATION . COMPONENT TrenchBroom)
+    install(TARGETS TrenchBroom ArchitectRuntime RUNTIME DESTINATION . COMPONENT TrenchBroom)
+    install(FILES "${CMAKE_SOURCE_DIR}/LICENSE.txt" DESTINATION . COMPONENT TrenchBroom)
     install(CODE [[
         # The regexes are a workaround for https://gitlab.kitware.com/cmake/cmake/-/issues/22431
         file(GET_RUNTIME_DEPENDENCIES
@@ -442,11 +450,17 @@ elseif(APPLE)
 elseif(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     set(CPACK_PACKAGING_INSTALL_PREFIX "/usr")
 
-    set(LINUX_RESOURCE_LOCATION "share/TrenchBroom")
+    set(LINUX_RESOURCE_LOCATION "share/${TB_PRODUCT_LINUX_RESOURCE_NAME}")
     set(LINUX_TARGET_RESOURCE_DIRECTORY ${CPACK_PACKAGING_INSTALL_PREFIX}/${LINUX_RESOURCE_LOCATION})
 
     # add mime type definitions
     install(FILES "${TB_RESOURCE_DIR}/linux/trenchbroom.xml" DESTINATION "share/mime/packages/" COMPONENT TrenchBroom)
+
+    set(TB_LINUX_DESKTOP_FILE "${CMAKE_CURRENT_BINARY_DIR}/${TB_PRODUCT_LINUX_DESKTOP_NAME}.desktop")
+    configure_file(
+        "${TB_RESOURCE_DIR}/linux/trenchbroom.desktop"
+        "${TB_LINUX_DESKTOP_FILE}"
+        @ONLY)
 
     # configure install scripts
     configure_file(${TB_RESOURCE_DIR}/linux/postinst ${CMAKE_CURRENT_BINARY_DIR}/linux/postinst @ONLY)
@@ -454,7 +468,7 @@ elseif(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     configure_file(${TB_RESOURCE_DIR}/linux/postrm ${CMAKE_CURRENT_BINARY_DIR}/linux/postrm @ONLY)
 
     # add files
-    install(TARGETS TrenchBroom RUNTIME DESTINATION bin COMPONENT TrenchBroom)
+    install(TARGETS TrenchBroom ArchitectRuntime RUNTIME DESTINATION bin COMPONENT TrenchBroom)
     install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/fonts"           DESTINATION ${LINUX_RESOURCE_LOCATION} COMPONENT TrenchBroom)
     install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/defaults"        DESTINATION ${LINUX_RESOURCE_LOCATION} COMPONENT TrenchBroom)
     install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/games"           DESTINATION ${LINUX_RESOURCE_LOCATION} COMPONENT TrenchBroom)

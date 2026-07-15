@@ -35,6 +35,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 project(TrenchBroom C CXX)
 
+include(cmake/ArchitectBranding.cmake)
+
 include(CTest)
 
 # Configure CCache if available and requested

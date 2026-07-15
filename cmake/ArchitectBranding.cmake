@@ -1,0 +1,16 @@
+# Temporary product identity for the unofficial Architect fork.
+# Keep renaming inputs here so a future rename does not require source-wide edits.
+set(TB_PRODUCT_DISPLAY_NAME "TrenchBroom Architect")
+set(TB_PRODUCT_APPLICATION_NAME "TrenchBroomArchitect")
+set(TB_PRODUCT_ORGANIZATION_DOMAIN "architect.trenchbroom.community")
+set(TB_PRODUCT_EXECUTABLE_NAME "TrenchBroomArchitect")
+set(TB_PRODUCT_LINUX_EXECUTABLE_NAME "trenchbroomarchitect")
+set(TB_PRODUCT_BUNDLE_IDENTIFIER "community.trenchbroom.architect")
+set(TB_PRODUCT_PACKAGE_PREFIX "TrenchBroomArchitect")
+set(TB_PRODUCT_DESCRIPTION "AI-assisted level editor; unofficial TrenchBroom fork")
+set(TB_PRODUCT_VENDOR "TrenchBroom Architect contributors")
+set(TB_PRODUCT_LINUX_RESOURCE_NAME "TrenchBroomArchitect")
+set(TB_PRODUCT_LINUX_DESKTOP_NAME "trenchbroomarchitect")
+set(TB_PRODUCT_LOG_FILENAME "TrenchBroomArchitect.log")
+set(TB_PRODUCT_UPDATE_LOG_FILENAME "TrenchBroomArchitect-update.log")
+set(TB_PRODUCT_UPDATES_ENABLED false)

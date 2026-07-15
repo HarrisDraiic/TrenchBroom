@@ -1,0 +1,39 @@
+/*
+ Copyright (C) 2026 TrenchBroom Architect contributors
+
+ This file is part of TrenchBroom.
+
+ TrenchBroom is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+
+ TrenchBroom is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+
+ You should have received a copy of the GNU General Public License
+ along with TrenchBroom. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+#pragma once
+
+namespace tb::ui::ArchitectBranding
+{
+
+inline constexpr auto DisplayName = "@TB_PRODUCT_DISPLAY_NAME@";
+inline constexpr auto ApplicationName = "@TB_PRODUCT_APPLICATION_NAME@";
+inline constexpr auto OrganizationDomain = "@TB_PRODUCT_ORGANIZATION_DOMAIN@";
+inline constexpr auto ExecutableName = "@TB_PRODUCT_EXECUTABLE_NAME@";
+inline constexpr auto LinuxExecutableName = "@TB_PRODUCT_LINUX_EXECUTABLE_NAME@";
+inline constexpr auto LinuxResourceName = "@TB_PRODUCT_LINUX_RESOURCE_NAME@";
+inline constexpr auto LogFilename = "@TB_PRODUCT_LOG_FILENAME@";
+inline constexpr auto UpdateLogFilename = "@TB_PRODUCT_UPDATE_LOG_FILENAME@";
+inline constexpr auto UpdatesEnabled = @TB_PRODUCT_UPDATES_ENABLED@;
+
+inline constexpr auto ArchitectDirectoryName = "Architect";
+inline constexpr auto ProfilesDirectoryName = "Profiles";
+inline constexpr auto RuntimeDirectoryName = "Runtime";
+
+} // namespace tb::ui::ArchitectBranding

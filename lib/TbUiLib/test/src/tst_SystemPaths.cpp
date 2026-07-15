@@ -49,4 +49,14 @@ TEST_CASE("userDataDirectory is changed by setPortable")
   SystemPaths::setPortable(false);
 }
 
+TEST_CASE("Architect data uses the isolated user data directory")
+{
+  CHECK(
+    SystemPaths::architectProfilesDirectory()
+    == SystemPaths::userDataDirectory() / "Architect" / "Profiles");
+  CHECK(
+    SystemPaths::architectRuntimeDataDirectory()
+    == SystemPaths::userDataDirectory() / "Architect" / "Runtime");
+}
+
 } // namespace tb::ui

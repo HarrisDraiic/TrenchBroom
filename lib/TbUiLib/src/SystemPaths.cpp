@@ -28,6 +28,7 @@
 
 #include "fs/DiskIO.h"
 #include "fs/PathInfo.h"
+#include "ui/ArchitectBranding.h"
 #include "ui/QPathUtils.h"
 
 #include "kd/optional_utils.h"
@@ -43,7 +44,7 @@ namespace
 
 std::filesystem::path appImageDirectory()
 {
-  return appDirectory() / ".." / "share" / "TrenchBroom";
+  return appDirectory() / ".." / "share" / ArchitectBranding::LinuxResourceName;
 }
 
 } // namespace
@@ -86,7 +87,8 @@ std::filesystem::path userDataDirectory()
 
 #if defined(Q_OS_LINUX) || defined(Q_OS_FREEBSD)
   // Compatibility with wxWidgets
-  return pathFromQString(QDir::homePath()) / ".TrenchBroom";
+  return pathFromQString(QDir::homePath())
+         / (std::string{"."} + ArchitectBranding::ApplicationName);
 #else
   return pathFromQString(
     QStandardPaths::writableLocation(QStandardPaths::AppDataLocation));
@@ -105,12 +107,24 @@ std::filesystem::path tempDirectory()
 
 std::filesystem::path logFilePath()
 {
-  return userDataDirectory() / "TrenchBroom.log";
+  return userDataDirectory() / ArchitectBranding::LogFilename;
 }
 
 std::filesystem::path preferenceFilePath()
 {
   return userDataDirectory() / "Preferences.json";
+}
+
+std::filesystem::path architectProfilesDirectory()
+{
+  return userDataDirectory() / ArchitectBranding::ArchitectDirectoryName
+         / ArchitectBranding::ProfilesDirectoryName;
+}
+
+std::filesystem::path architectRuntimeDataDirectory()
+{
+  return userDataDirectory() / ArchitectBranding::ArchitectDirectoryName
+         / ArchitectBranding::RuntimeDirectoryName;
 }
 
 std::filesystem::path findResourceFile(const std::filesystem::path& file)

@@ -75,6 +75,10 @@ jobs:
       - name: Build
         run: cmd.exe /c CI-windows.bat
 
+      - name: Verify Architect package
+        shell: pwsh
+        run: ./.github/scripts/verify-architect-package.ps1 -BuildDirectory cmakebuild
+
       - name: ccache stats
         if: ${{ always() }}
         shell: pwsh

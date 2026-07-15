@@ -79,6 +79,7 @@
 #include "ui/ActionExecutionContext.h"
 #include "ui/ActionManager.h"
 #include "ui/AppController.h"
+#include "ui/ArchitectBranding.h"
 #include "ui/ChoosePathTypeDialog.h"
 #include "ui/ClipTool.h"
 #include "ui/ColorButton.h"
@@ -307,7 +308,9 @@ void MapWindow::updateTitle()
 {
   const auto& map = m_document->map();
   setWindowModified(map.modified());
-  setWindowTitle(tr("%1[*] - TrenchBroom").arg(pathAsQString(map.filename())));
+  setWindowTitle(
+    tr("%1[*] - %2")
+      .arg(pathAsQString(map.filename()), QString::fromUtf8(ArchitectBranding::DisplayName)));
   setWindowFilePath(pathAsQPath(map.path()));
 }
 
@@ -419,7 +422,7 @@ void MapWindow::updateRecentDocumentsMenu()
 void MapWindow::createGui()
 {
   setWindowIconTB(this);
-  setWindowTitle("TrenchBroom");
+  setWindowTitle(QString::fromUtf8(ArchitectBranding::DisplayName));
 
   m_hSplitter = new Splitter{Qt::Horizontal, DrawKnob::No};
   m_hSplitter->setChildrenCollapsible(false);
@@ -1138,7 +1141,7 @@ bool MapWindow::confirmOrDiscardChanges()
 
   const auto result = QMessageBox::question(
     this,
-    "TrenchBroom",
+    QString::fromUtf8(ArchitectBranding::DisplayName),
     tr("%1 has been modified. Do you want to save the changes?")
       .arg(pathAsQString(map.filename())),
     QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
@@ -1162,7 +1165,7 @@ bool MapWindow::confirmRevertDocument()
   }
 
   auto messageBox = QMessageBox{this};
-  messageBox.setWindowTitle("TrenchBroom");
+  messageBox.setWindowTitle(QString::fromUtf8(ArchitectBranding::DisplayName));
   messageBox.setIcon(QMessageBox::Question);
   messageBox.setText(tr("Revert %1 to %2?")
                        .arg(pathAsQString(map.filename()))

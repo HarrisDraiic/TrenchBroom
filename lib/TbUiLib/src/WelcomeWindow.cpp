@@ -25,6 +25,7 @@
 #include <QPushButton>
 
 #include "ui/AppController.h"
+#include "ui/ArchitectBranding.h"
 #include "ui/AppInfoPanel.h"
 #include "ui/BorderLine.h"
 #include "ui/FileDialogDefaultDir.h"
@@ -46,7 +47,8 @@ WelcomeWindow::WelcomeWindow(AppController& appController)
 void WelcomeWindow::createGui()
 {
   setWindowIconTB(this);
-  setWindowTitle("Welcome to TrenchBroom");
+  setWindowTitle(
+    tr("Welcome to %1").arg(QString::fromUtf8(ArchitectBranding::DisplayName)));
 
   m_recentDocumentListBox = new RecentDocumentListBox{m_appController.recentDocuments()};
   m_recentDocumentListBox->setToolTip("Double click on a file to open it");

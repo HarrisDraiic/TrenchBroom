@@ -1,5 +1,11 @@
 add_library(TbUiLib STATIC)
 
+configure_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/ArchitectBranding.h.in
+  ${CMAKE_CURRENT_BINARY_DIR}/generated/ui/ArchitectBranding.h
+  @ONLY
+)
+
 target_sources(TbUiLib
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/AboutDialog.cpp
@@ -475,6 +481,11 @@ target_sources(TbUiLib
   
   PRIVATE FILE_SET version_header TYPE HEADERS
     BASE_DIRS ${CMAKE_CURRENT_BINARY_DIR}/generated
+
+  PUBLIC FILE_SET branding_header TYPE HEADERS
+    BASE_DIRS ${CMAKE_CURRENT_BINARY_DIR}/generated
+    FILES
+      ${CMAKE_CURRENT_BINARY_DIR}/generated/ui/ArchitectBranding.h
 )
 
 target_link_libraries(TbUiLib 

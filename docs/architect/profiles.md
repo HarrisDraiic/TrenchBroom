@@ -1,38 +1,53 @@
 # Architectural profiles
 
-A fresh TrenchBroom Architect installation contains zero profiles. The current room
-vertical slice creates the isolated `Architect/Profiles` data location but does not
-create, load, select, or modify profile files. Room generation works without a profile.
+A fresh TrenchBroom Architect installation contains zero profiles. Profiles are created
+only when the user explicitly chooses **Create Draft Profile** in the Architect panel.
+Room generation works without a profile.
 
-## Intended model
+## Current draft workflow
 
-A profile is a versioned architectural design system, not a saved prompt. User-global
-and project-local profiles will contain human-inspectable design language, proportions,
-composition rules, material mappings, negative rules, validation rules, references, and
-asset metadata. Explicitly named profiles will override the active profile for one
-request without silently changing the permanent selection.
+1. Describe the design language in the Architect prompt box.
+2. Choose **Create Draft Profile** and provide a display name.
+3. The bundled runtime saves a version 1 draft under the isolated
+   `Architect/Profiles` data directory.
+4. Use the panel's profile selector to activate the draft or return to **No profile**.
 
-Name resolution is planned in this order: exact display name, alias, normalized slug,
-then unique close match. Ambiguous matches must ask for clarification.
+The active selection is persisted in `active-profile.json`. Creating or selecting a
+profile does not write to the map, and the deterministic mock room planner does not
+apply profile rules yet.
 
-## Planned lifecycle
+## Stored format
 
-The first profile milestone must support creating a draft through conversation, saving
-it explicitly, listing it, selecting and clearing it, renaming or archiving it, and
-preserving versions. The runtime must never save a successful map component into a
-profile automatically. Global data must not be overwritten by a project-local profile
-without a clear user choice.
+Each profile has a safe normalized directory name and two human-inspectable files:
 
-Import and storage code must validate schema versions and keep canonical paths inside
-the selected profile root. Archive extraction must reject traversal, links, absolute
-paths, oversized input, and unexpected executable or credential material.
+- `profile.json` uses schema `architect-profile/1` and records a UUID, display name,
+  normalized slug, aliases, integer version, and `draft` status.
+- `design-language.md` records the display name, draft status, version, and the user's
+  design-language text.
+
+Profile JSON is limited to 64 KiB, design-language input to 8 KiB, names and aliases to
+128 characters, and aliases to 32 entries. Writes use atomic save files. Listing rejects
+unsupported schemas, invalid UUIDs, malformed versions, links, and metadata paths that
+do not remain canonically inside the selected root.
+
+Name resolution is deterministic: exact display name, exact alias, then normalized slug.
+Display and alias comparisons are case-insensitive. Ambiguous aliases return a stable
+`ambiguous_profile_name` error instead of silently choosing a profile.
+
+## Current boundaries
+
+This milestone provides a user-global draft store, explicit create/list/select/clear,
+persistent active selection, and safe name resolution. It does not yet provide
+project-local precedence, rename/archive, multi-version history, imports, close-match
+lookup, profile assets, or profile-guided generation. A successful room is never added
+to a profile automatically.
+
+Future archive import must reject traversal, links, absolute paths, oversized input, and
+unexpected executable or credential material. Global data must not be overwritten by a
+project-local profile without a clear user choice.
 
 ## Compatibility
 
-Profile metadata may be referenced non-invasively from normal maps, but the map remains
-an ordinary TrenchBroom-compatible `.map` file. Updating a profile must never silently
-rewrite geometry already present in a map.
-
-Profile creation, selection, natural-language lookup, and guided generation are not
-implemented in the current package and remain acceptance gaps for the first usable
-release.
+Profile metadata is stored outside normal maps. The map remains an ordinary
+TrenchBroom-compatible `.map` file, and changing the active profile never rewrites
+existing geometry.

@@ -32,6 +32,11 @@ explicit width, depth, and height, select Plan Room, review the blueprint summar
 write access, and select Apply Blueprint. The current mock provider needs no credential
 and performs no network request. A successful room is one normal undoable command.
 
+To save a draft profile, enter design-language guidance in the same prompt box, choose
+**Create Draft Profile**, and name it. The profile appears in the selector as **Draft**.
+Selecting it or **No profile** persists that choice. The current mock room planner does
+not apply profile rules yet, and profile actions do not write to the map.
+
 Keep `TrenchBroomArchitectRuntime.exe` and all DLL/plugin directories beside the main
 executable. Copying only the main executable is not an installation.
 
@@ -46,9 +51,10 @@ available.
 
 ## Portable data
 
-Start the application with `--portable` to keep preferences and future Architect data in
-the extracted application's `config` area. The profile library initially contains zero
-profiles. Portable mode does not use stock TrenchBroom's configuration directory.
+Start the application with `--portable` to keep preferences and Architect data in the
+extracted application's `config` area. A fresh profile store contains zero profiles;
+the first draft is created only by the explicit panel action. Portable mode does not use
+stock TrenchBroom's configuration directory.
 
 Without `--portable`, Qt places data under the distinct `TrenchBroomArchitect` application
 namespace. Architect profiles and runtime data use `Architect/Profiles` and
@@ -57,7 +63,8 @@ namespace. Architect profiles and runtime data use `Architect/Profiles` and
 ## Current limitations
 
 The current package provides the AI Architect panel, bundled mock runtime, semantic room
-planning, deterministic room application, and normal undo/redo. It does not provide a
-real-provider configuration screen, profile creation or selection, profile assets,
-profile-guided generation, selection-aware placement, or a signed installer. It remains
-an unsigned development alpha rather than the first usable release.
+planning, deterministic room application, normal undo/redo, and a user-global draft
+profile lifecycle. It does not provide a real-provider configuration screen,
+project-local/rename/archive/version profile workflows, profile assets, profile-guided
+generation, selection-aware placement, or a signed installer. It remains an unsigned
+development alpha rather than the first usable release.

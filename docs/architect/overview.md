@@ -33,9 +33,11 @@ The feature branch now contains an installable deterministic room vertical slice
 - Package-content verification for the Windows artifact.
 - Stock TrenchBroom auto-updates disabled until the fork has its own compatible update
   channel.
-- Dedicated empty locations for Architect profiles and runtime data; no built-in profiles
-  are created or shipped.
-
+- Dedicated Architect profile and runtime-data locations; a fresh installation remains
+  empty and no built-in profiles are shipped.
+- A versioned, human-inspectable draft-profile store with explicit create/list/select/
+  clear, deterministic name resolution, persistent active selection, canonical path
+  checks, atomic saves, and panel controls.
 - A bundled C++ Architect runtime using private child-process standard I/O, a versioned
   bounded JSON protocol, and an offline deterministic mock provider.
 - A dockable AI Architect panel that plans without writing, requires explicit write
@@ -45,9 +47,10 @@ The feature branch now contains an installable deterministic room vertical slice
 - Focused protocol/planner and geometry transaction tests, an offscreen window test, an
   actual Windows ZIP verification, and a clean extracted-package launch smoke test.
 
-This is not the first usable release. Real-provider configuration, collaborative
-profiles, independently editable assets, profile-guided generation, remote Actions
-evidence, and complete interactive smoke tests remain outstanding.
+This is not the first usable release. Real-provider configuration, project-local and
+multi-version profile workflows, independently editable assets, profile-guided
+generation, remote Actions evidence, and complete interactive smoke tests remain
+outstanding.
 
 ## Licensing and attribution
 

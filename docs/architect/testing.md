@@ -26,12 +26,15 @@ normal per-user log.
 
 - `ArchitectLibTest`: mock planner metric/imperial behavior, deterministic snapped
   dimensions, JSON round trip, malformed requests, protocol mismatch, unknown methods,
-  prompt limits, and runtime status.
+  prompt limits, runtime status, empty profile startup, draft creation, schema/path
+  validation, display/alias/slug resolution, collision and ambiguity handling, and
+  persistent active selection.
 - `TbMdlLibTest` / `ArchitectRoomBuilder`: eight-brush room creation, one undo,
   redo, invalid blueprint rejection, world-bounds rejection, and unchanged-map failures.
 - `TbUiLibTest` / `MapWindow`: existing window lifecycle behavior with the docked panel
-  integration compiled into the editor.
-- Runtime smoke: newline-delimited status and exact natural-language room request.
+  integration compiled into the editor, plus the isolated Architect data path.
+- Runtime smoke: newline-delimited status, exact natural-language room request, and a
+  five-step fresh-list/create/select/persist/clear profile sequence.
 - Package verifier: branded application, bundled runtime, license, checksum, stock-name
   exclusion, and credential/session filename patterns.
 - Clean-package smoke: the extracted runtime starts without development paths and the
@@ -58,8 +61,8 @@ local results are recorded separately and CI remains blocked/unverified.
 
 ## Required next tests
 
-The first usable release still needs direct panel/runtime integration tests, provider
+The first usable release still needs direct panel/runtime click-through tests, provider
 configuration and credential tests, authenticated external bridge tests if that bridge
-is added, project-scale/selection tests, profile and asset lifecycle tests, profile
-path-traversal/import tests, broader map-format geometry coverage, and the complete
-profile-guided end-to-end smoke sequence.
+is added, project-scale/selection tests, project-local/rename/archive/version profile
+tests, profile archive traversal tests, asset lifecycle tests, broader map-format
+geometry coverage, and the complete profile-guided end-to-end smoke sequence.

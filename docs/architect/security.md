@@ -9,7 +9,8 @@ from controls required before real providers or external automation are enabled.
   `QProcess`; it does not invoke a shell.
 - The runtime uses inherited standard-input/standard-output pipes and exposes no listener
   or network request API. `runtime.status` reports `external_access: false`.
-- The runtime has no method for arbitrary code, commands, URLs, or filesystem paths.
+- The runtime has no method for arbitrary code, commands, URLs, or caller-supplied
+  filesystem paths. Profile methods are confined to the fixed root passed by the editor.
 - Requests are limited to 64 KiB, prompts to 8 KiB, and editor operations to 10 seconds.
   Only one request can be active in a panel.
 - Every response must have the expected request ID and protocol. Room blueprint numbers,
@@ -22,6 +23,9 @@ from controls required before real providers or external automation are enabled.
   the map unchanged.
 - Runtime stderr is discarded rather than inserted into the transcript. Structured
   client errors contain stable codes and user-safe messages.
+- A fresh profile store is empty. Draft creation is an explicit button action; schemas,
+  UUIDs, integer versions, normalized slugs, canonical containment, file/link types, and
+  size limits are validated. Metadata and active selection use atomic save files.
 - No provider credential is accepted, stored, logged, committed, or packaged.
 - The Windows package check rejects common credential, key, and live-session descriptor
   filenames and requires the branded application, bundled runtime, license, and checksum.
@@ -33,9 +37,10 @@ third-party client to connect to.
 ## Untrusted input
 
 Prompts and runtime JSON are untrusted. The planner accepts only the small `plan.room`
-schema. The geometry layer does not accept brush planes or raw map text. The active
-material name is treated as data passed to `mdl::BrushBuilder`, and all geometry must fit
-the active map's world bounds.
+schema, and profile methods accept bounded names, aliases, and design-language text
+without accepting a path. The geometry layer does not accept brush planes or raw map
+text. The active material name is treated as data passed to `mdl::BrushBuilder`, and all
+geometry must fit the active map's world bounds.
 
 Maps, game configurations, materials, entity definitions, profile archives, and
 references require their existing parsers plus feature-specific validation as later
@@ -47,9 +52,10 @@ A future external local endpoint requires authenticated, expiring session descri
 local-machine binding, stale-descriptor rejection, rate and concurrency limits, and
 explicit opt-in. Real providers require operating-system credential storage, log and
 crash-report redaction, endpoint allowlisting, and tests for authentication and provider
-failures. Profiles and assets require canonical-path containment, archive validation,
-schema/version validation, safe extraction, and confirmation before deletion or
-replacement.
+failures. Project-local profiles and assets require explicit precedence, archive
+validation, safe extraction, and confirmation before deletion or replacement. Profile
+and asset importers must extend the current schema/version, size, link, and canonical
+containment checks to every archive entry.
 
 No external endpoint, real provider, profile importer, or asset importer should be
 enabled until those controls and tests are implemented.

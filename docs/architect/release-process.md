@@ -38,6 +38,7 @@ step are available. Signing secrets must never be placed in source or artifacts.
 
 In addition to the deterministic room slice, the first usable release requires a real
 provider configuration workflow or explicitly accepted mock-only scope, profile draft
-creation and selection, an isolated editable asset workflow, profile-guided generation,
-remote CI artifacts, and the documented manual GUI checks. Until then, label packages as
+creation and selection, an isolated editable asset workflow, broader profile-guided
+generation beyond the bounded wall rule, durable provenance, remote CI artifacts, and
+the documented manual GUI checks. Until then, label packages as
 development alpha artifacts.

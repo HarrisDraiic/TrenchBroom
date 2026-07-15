@@ -34,8 +34,11 @@ and performs no network request. A successful room is one normal undoable comman
 
 To save a draft profile, enter design-language guidance in the same prompt box, choose
 **Create Draft Profile**, and name it. The profile appears in the selector as **Draft**.
-Selecting it or **No profile** persists that choice. The current mock room planner does
-not apply profile rules yet, and profile actions do not write to the map.
+Selecting it or **No profile** persists that choice. To exercise the current bounded
+guidance, include a line such as `Room wall thickness: 0.5 metres` in the design language,
+select the draft, and plan a new room. The blueprint summary shows the profile UUID,
+slug, version, assumption, and snapped wall thickness. Profile actions and planning do
+not write to the map; Apply still requires explicit write access.
 
 Keep `TrenchBroomArchitectRuntime.exe` and all DLL/plugin directories beside the main
 executable. Copying only the main executable is not an installation.
@@ -64,7 +67,8 @@ namespace. Architect profiles and runtime data use `Architect/Profiles` and
 
 The current package provides the AI Architect panel, bundled mock runtime, semantic room
 planning, deterministic room application, normal undo/redo, and a user-global draft
-profile lifecycle. It does not provide a real-provider configuration screen,
-project-local/rename/archive/version profile workflows, profile assets, profile-guided
-generation, selection-aware placement, or a signed installer. It remains an unsigned
+profile lifecycle with one bounded wall-thickness rule and preview provenance. It does
+not provide a real-provider configuration screen, project-local/rename/archive/version
+profile workflows, profile assets, general design-language interpretation, durable map
+provenance, selection-aware placement, or a signed installer. It remains an unsigned
 development alpha rather than the first usable release.

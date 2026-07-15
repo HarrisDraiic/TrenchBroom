@@ -27,18 +27,26 @@ normal per-user log.
 - `ArchitectLibTest`: mock planner metric/imperial behavior, deterministic snapped
   dimensions, JSON round trip, malformed requests, protocol mismatch, unknown methods,
   prompt limits, runtime status, empty profile startup, draft creation, schema/path
-  validation, display/alias/slug resolution, collision and ambiguity handling, and
-  persistent active selection.
+  validation, display/alias/slug resolution, collision and ambiguity handling,
+  persistent active selection, bounded active snapshots, explicit wall-thickness
+  guidance, optional profile provenance round trips, malformed/stale profile failures,
+  and oversized-number rejection.
 - `TbMdlLibTest` / `ArchitectRoomBuilder`: eight-brush room creation, one undo,
   redo, invalid blueprint rejection, world-bounds rejection, and unchanged-map failures.
 - `TbUiLibTest` / `MapWindow`: existing window lifecycle behavior with the docked panel
   integration compiled into the editor, plus the isolated Architect data path.
 - Runtime smoke: newline-delimited status, exact natural-language room request, and a
-  five-step fresh-list/create/select/persist/clear profile sequence.
+  fresh create/select/profile-guided-plan/clear sequence that verifies snapped wall and
+  slab thickness plus UUID/slug/version provenance.
 - Package verifier: branded application, bundled runtime, license, checksum, stock-name
   exclusion, and credential/session filename patterns.
 - Clean-package smoke: the extracted runtime starts without development paths and the
   extracted editor remains running through a short launch check.
+
+Latest focused Release validation passed 136 assertions in three Architect core test
+cases, 16 assertions in the room-builder test case, and 21 assertions in two
+editor-facing test cases. The bundled runtime also passed the fresh profile-guided smoke
+sequence described above.
 
 Compiler success is not a substitute for interactive verification. The current run has
 not automated clicking Plan/Apply inside a real map, checking the rendered room, or

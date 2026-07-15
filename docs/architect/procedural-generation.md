@@ -35,9 +35,11 @@ the map unchanged.
 
 The origin is fixed by the mock planner, the scale is fixed at 32 units per metre, the
 doorway is rectangular and centered on the south wall, and one material is used for the
-entire shell. Selection-aware placement, project-scale inspection, missing-material
-diagnostics, map-format matrices, staged structures, corridors, stairs, arches, towers,
-roofs, and profile assets are planned.
+entire shell. An active profile can currently change only newly planned wall thickness
+through the explicit bounded `Room wall thickness` directive; floor/ceiling thickness
+and all other geometry retain deterministic defaults. Selection-aware placement,
+project-scale inspection, missing-material diagnostics, map-format matrices, staged
+structures, corridors, stairs, arches, towers, roofs, and profile assets are planned.
 
 New generators should follow the same pattern: semantic input, strict preflight,
 temporary construction, meaningful logical transactions, deterministic validation, and

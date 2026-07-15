@@ -14,13 +14,15 @@
 - Explicit profile create/list/select/clear, persistent active selection, and safe
   display-name/alias/slug resolution in the bundled runtime and panel.
 - Focused profile schema, path, collision, ambiguity, persistence, and protocol tests.
+- Read-only active-profile snapshots with bounded UTF-8 design-language validation.
+- Deterministic `Room wall thickness` guidance, optional `room/1` profile provenance,
+  visible planning assumptions, and safe stale-profile failure behavior.
 
 ## Next smallest milestone
 
-Make one deterministic room request consume a constrained, versioned profile snapshot
-and record profile provenance without silently mutating the profile or existing map
-geometry. Add project-local precedence only with an explicit user choice, then extend
-the draft lifecycle with rename, archive, and version history.
+Extend the draft lifecycle with rename, archive, and version history. Add project-local
+precedence only with an explicit user choice, then build one isolated profile-asset
+workspace with draft/approve/version/revert/insert behavior.
 
 ## First usable release remainder
 
@@ -28,7 +30,7 @@ the draft lifecycle with rename, archive, and version history.
 - Authenticated local automation only if external clients are enabled.
 - Project-local, collaborative, and multi-version profile workflows.
 - One isolated asset workspace with draft/approve/version/revert/insert.
-- Profile-guided room generation and provenance.
+- Broader multi-rule profile guidance and durable map-local provenance.
 - Remote GitHub Actions artifact and broader/manual GUI verification.
 - Accurate unsigned alpha release notes and installation evidence.
 

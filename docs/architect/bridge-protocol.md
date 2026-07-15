@@ -33,7 +33,10 @@ a stack trace or sensitive path.
 - `profiles.resolve` resolves a display name, alias, or normalized slug.
 - `profiles.set_active` and `profiles.clear_active` persist the selector state.
 - `plan.room` accepts `prompt`, `units_per_metre`, and `material`, then returns one
-  validated `room/1` blueprint. It never writes to a map.
+  validated `room/1` blueprint. When the fixed store has an active draft, the runtime
+  reads its bounded UUID/version/design-language snapshot, applies only supported mock
+  rules, and includes optional profile provenance. The caller cannot provide or override
+  a profile path. Planning never writes to a map or profile.
 
 Unknown methods and protocol versions return stable structured errors. Request IDs must
 be non-empty strings of at most 128 characters. A request or buffered response is

@@ -213,9 +213,11 @@ labelled accurately.
 ## Implemented vertical slice
 
 - `ArchitectLib` owns stable errors, `architect/1`, strict `room/1` serialization, and
-  the deterministic mock planner.
+  the deterministic mock planner, including validated optional profile provenance.
 - `ArchitectRuntime` is a bundled C++ line-oriented child process with no listener,
-  external access, shell, arbitrary URL, or filesystem method.
+  external access, shell, arbitrary URL, or caller-selected filesystem method. Its fixed
+  profile store supplies read-only active UUID/version snapshots and one explicit mock
+  wall-thickness rule.
 - `TbMdlLib` owns `createArchitectRoom`, which preflights and constructs eight cuboids
   with `BrushBuilder` and commits them through one named map command.
 - `TbUiLib` owns the docked `ArchitectPanel`, runtime supervision, response validation,
@@ -225,11 +227,13 @@ labelled accurately.
 
 ## Current verification status
 
-- Passed locally: native Release configuration; `ArchitectLibTest` (29 assertions);
-  focused `ArchitectRoomBuilder` test (16 assertions); full `TbUiLibTest` target build;
-  focused offscreen `MapWindow` test (19 assertions); complete application/runtime build;
-  CPack ZIP and MD5 generation; package-content verification; packaged runtime query;
-  and a seven-second clean extracted-application launch.
+- Passed locally: native Release configuration; `ArchitectLibTest` (136 assertions);
+  focused `ArchitectRoomBuilder` test (16 assertions); focused Architect data-path and
+  `MapWindow` tests (21 assertions); complete application/runtime build; and a live
+  create/select/profile-guided-plan/clear runtime smoke with wall/slab thickness and
+  UUID/slug/version assertions. CPack ZIP and MD5 generation, package-content
+  verification, packaged runtime query, and a seven-second clean extracted-application
+  launch are also validated.
 - The local package is unsigned development evidence, not a published release artifact.
 - Failed release-hardening check: PE/PDB debug records in the main executable, stripped
   PDB, and 31 vcpkg DLLs retain local build paths. Path mapping or safe debug-record

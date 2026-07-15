@@ -12,12 +12,17 @@ no provider settings screen yet and no environment file is required or supported
 
 1. Open or create a map.
 2. Open the AI Architect dock if it is hidden.
-3. Enter room width, depth, and height in metres/meters or feet.
-4. Select Plan Room, review the summary, explicitly enable write access, and select Apply
+3. Optionally select a draft profile. The current mock recognizes only a bounded line
+   such as `Room wall thickness: 0.5 metres` in its design language.
+4. Enter room width, depth, and height in metres/meters or feet.
+5. Select Plan Room, review the assumptions and provenance, explicitly enable write
+   access, and select Apply
    Blueprint.
 
 The mock planner uses the editor-supplied current material and 32 map units per metre. It
-snaps dimensions and thickness to an 8-unit grid.
+snaps dimensions and thickness to an 8-unit grid. Without a supported active-profile
+rule it preserves the default 0.25-metre shell thickness; with the current directive it
+changes wall thickness only.
 
 ## Real-provider design requirements
 

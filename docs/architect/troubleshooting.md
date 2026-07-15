@@ -9,13 +9,15 @@ moved, extract the entire ZIP again and verify its checksum.
 ## Plan Room reports invalid argument
 
 The mock provider requires explicit width, depth, and height with metric or imperial
-units, for example: ?Create a stone room 12 metres wide, 10 metres deep and 5 metres
-tall.? Dimensions must be within the current mock limits and the height must be at least
-2.2 metres.
+units, for example: "Create a stone room 12 metres wide, 10 metres deep and 5 metres
+tall." Dimensions must be within the current mock limits and the height must be at least
+2.2 metres. If an active profile contains `Room wall thickness:`, its value must be a
+metric or imperial measurement from 0.1 through 2 metres; malformed and out-of-range
+directives fail visibly.
 
 ## Apply Blueprint is disabled
 
-A successful plan must exist and ?Enable map write access for Apply Blueprint? must be
+A successful plan must exist and "Enable map write access for Apply Blueprint" must be
 checked. Planning never changes the map. The checkbox intentionally resets after a
 successful apply.
 

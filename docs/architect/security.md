@@ -26,6 +26,10 @@ from controls required before real providers or external automation are enabled.
 - A fresh profile store is empty. Draft creation is an explicit button action; schemas,
   UUIDs, integer versions, normalized slugs, canonical containment, file/link types, and
   size limits are validated. Metadata and active selection use atomic save files.
+- Room planning resolves the active UUID only from the fixed store, reads a bounded
+  normal UTF-8 design-language file, validates its expected version header, and fails on
+  stale or malformed state. The caller cannot inject a profile path. Optional blueprint
+  provenance is revalidated as UUID/slug/integer-version data by the editor.
 - No provider credential is accepted, stored, logged, committed, or packaged.
 - The Windows package check rejects common credential, key, and live-session descriptor
   filenames and requires the branded application, bundled runtime, license, and checksum.

@@ -31,6 +31,7 @@ with the project unless the user deletes them explicitly.
 
 ## Credentials
 
-The identity milestone stores no provider credentials. When provider support is added,
-removal instructions must name the operating-system credential entry separately because
-deleting an application directory may not remove secure credential-store entries.
+The current mock provider stores no provider credentials. When real-provider support is
+added, removal instructions must name the operating-system credential entry separately
+because deleting an application directory may not remove secure credential-store
+entries.

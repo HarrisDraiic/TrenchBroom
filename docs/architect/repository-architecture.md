@@ -210,15 +210,33 @@ contain no credentials or live session descriptors, and remain extractable along
 stock TrenchBroom. Signing remains a release concern; unsigned alpha packages must be
 labelled accurately.
 
-## Baseline verification status
+## Implemented vertical slice
 
-- Passed: fork permission, remote URLs, clean starting worktree, fork/upstream commit
-  equality, repository and packaging inspection, and presence/readability of the vcpkg
-  checkout.
-- Blocked locally: configuration, compilation, tests, and CPack because CMake, Ninja,
-  Pandoc, Qt, and an accessible C++ compiler are absent from this host.
-- CI verification: required on the documentation-only draft PR to establish the remote
-  source baseline and produce the first package artifact.
-- Manual verification: application launch, side-by-side paths, GUI layout, and packaged
-  clean-machine launch cannot be claimed until an Architect package exists and is tested.
+- `ArchitectLib` owns stable errors, `architect/1`, strict `room/1` serialization, and
+  the deterministic mock planner.
+- `ArchitectRuntime` is a bundled C++ line-oriented child process with no listener,
+  external access, shell, arbitrary URL, or filesystem method.
+- `TbMdlLib` owns `createArchitectRoom`, which preflights and constructs eight cuboids
+  with `BrushBuilder` and commits them through one named map command.
+- `TbUiLib` owns the docked `ArchitectPanel`, runtime supervision, response validation,
+  explicit write confirmation, timeout/cancellation, and UI-thread Apply action.
+- CMake installs the main and runtime executables together. The Windows verifier requires
+  both, the license, and checksum and rejects stock naming and credential/session files.
+
+## Current verification status
+
+- Passed locally: native Release configuration; `ArchitectLibTest` (29 assertions);
+  focused `ArchitectRoomBuilder` test (16 assertions); full `TbUiLibTest` target build;
+  focused offscreen `MapWindow` test (19 assertions); complete application/runtime build;
+  CPack ZIP and MD5 generation; package-content verification; packaged runtime query;
+  and a seven-second clean extracted-application launch.
+- The local package is unsigned development evidence, not a published release artifact.
+- Failed release-hardening check: PE/PDB debug records in the main executable, stripped
+  PDB, and 31 vcpkg DLLs retain local build paths. Path mapping or safe debug-record
+  stripping is required before a release artifact can claim zero build-tree paths.
+- GitHub Actions remains unverified because the fork has produced no workflow/check run
+  for the draft PR. Remote reproducibility and downloadable workflow artifacts remain
+  blocked until Actions is enabled or permitted to run.
+- Manual Plan/Apply interaction, rendered-room inspection, packaged UI undo/redo, and
+  clean-machine testing beyond the extracted launch smoke remain pending.
 

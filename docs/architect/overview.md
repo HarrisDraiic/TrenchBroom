@@ -24,7 +24,7 @@ The intended system has four boundaries:
 
 ## Current implementation status
 
-The feature branch currently establishes the remote baseline and distributable identity:
+The feature branch now contains an installable deterministic room vertical slice:
 
 - Centralized temporary product naming.
 - Distinct executable, package, Qt application identity, settings, logs, bundle ID, and
@@ -36,8 +36,18 @@ The feature branch currently establishes the remote baseline and distributable i
 - Dedicated empty locations for Architect profiles and runtime data; no built-in profiles
   are created or shipped.
 
-No AI provider, chat panel, runtime, editor bridge, or geometry generation is claimed by
-this milestone. Those functions must not be inferred from the temporary product name.
+- A bundled C++ Architect runtime using private child-process standard I/O, a versioned
+  bounded JSON protocol, and an offline deterministic mock provider.
+- A dockable AI Architect panel that plans without writing, requires explicit write
+  confirmation, enforces a timeout, and supports cancellation.
+- A semantic `room/1` blueprint and deterministic eight-brush room generator using the
+  active map format, material, world bounds, and existing undo/redo history.
+- Focused protocol/planner and geometry transaction tests, an offscreen window test, an
+  actual Windows ZIP verification, and a clean extracted-package launch smoke test.
+
+This is not the first usable release. Real-provider configuration, collaborative
+profiles, independently editable assets, profile-guided generation, remote Actions
+evidence, and complete interactive smoke tests remain outstanding.
 
 ## Licensing and attribution
 

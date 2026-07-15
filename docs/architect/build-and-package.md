@@ -11,9 +11,10 @@ maintain a second build system.
 - Pandoc.
 - The recursively initialized `vcpkg` submodule.
 
-See the repository `BUILD.md` for platform-specific developer setup. The current remote
-workspace does not expose CMake, Qt, Pandoc, Ninja, or a usable C++ compiler, so local
-configuration cannot be used as release evidence.
+See the repository `BUILD.md` for platform-specific developer setup. The development
+workspace has been validated with Visual Studio 2022, Qt 6.10.3, bundled CMake/Ninja,
+Pandoc, and the pinned vcpkg checkout. Local validation is useful development evidence;
+the GitHub Actions artifact remains the reproducible release path.
 
 ## Windows CI path
 
@@ -39,13 +40,20 @@ with `TrenchBroomArchitect-`.
 For a configured developer build, build the relevant test target before running it:
 
 ```text
+cmake --build cmakebuild --target ArchitectLibTest
+cmakebuild/lib/ArchitectLib/test/ArchitectLibTest --reporter compact
+
+cmake --build cmakebuild --target TbMdlLibTest
+cmakebuild/lib/TbMdlLib/test/TbMdlLibTest ArchitectRoomBuilder --reporter compact
+
 cmake --build cmakebuild --target TbUiLibTest
-ctest --test-dir cmakebuild --output-on-failure -R TbUiLibTest
+cmakebuild/lib/TbUiLib/test/TbUiLibTest *MapWindow* --reporter compact
 ```
 
 The SystemPaths test verifies that Architect profile and runtime locations remain beneath
-the isolated application data directory. The Windows packaging check verifies executable
-identity, license inclusion, checksum creation, and credential/session filename bans.
+the isolated application data directory. The Windows packaging check requires the main
+and runtime executables, verifies identity, license inclusion and checksum creation, and
+rejects credential/session filename patterns.
 
 ## Signing
 

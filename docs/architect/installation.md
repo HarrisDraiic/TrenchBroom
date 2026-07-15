@@ -8,22 +8,32 @@ or require a stock TrenchBroom installation.
 1. Open the GitHub Actions run for the Architect draft pull request.
 2. Download the `windows-2022` artifact.
 3. Verify that it contains a ZIP named like
-   `TrenchBroomArchitect-Win64-x64-<version>-Release.zip` and the matching `.zip.md5`
-   checksum.
+   `TrenchBroomArchitect-Win64-AMD64-<version>-Release.zip` and the matching
+   `.zip.md5` checksum.
 4. Verify the checksum before extracting the archive.
 
-CI package verification requires `TrenchBroomArchitect.exe` and `LICENSE.txt`, rejects the
-stock `TrenchBroom.exe` name, and rejects common credential, key, and live-session
-descriptor filenames.
+CI package verification requires `TrenchBroomArchitect.exe`,
+`TrenchBroomArchitectRuntime.exe`, and `LICENSE.txt`; rejects the stock
+`TrenchBroom.exe` name; and rejects common credential, key, and live-session descriptor
+filenames.
 
-No successful Architect package is available until the draft PR's Windows job passes.
-Do not treat a source archive as an installable build.
+A locally built and clean-extraction-tested development ZIP exists in the build
+workspace. It is not downloadable from GitHub. The remotely reproducible package is not
+available until the draft PR's Windows workflow creates and passes a run.
 
 ## Install or extract
 
 1. Create a new folder, for example `C:\Tools\TrenchBroom Architect Alpha`.
 2. Extract the complete ZIP into that folder.
 3. Start `TrenchBroomArchitect.exe`.
+
+Open or create a map and show the dockable AI Architect panel. Enter a request with
+explicit width, depth, and height, select Plan Room, review the blueprint summary, check
+write access, and select Apply Blueprint. The current mock provider needs no credential
+and performs no network request. A successful room is one normal undoable command.
+
+Keep `TrenchBroomArchitectRuntime.exe` and all DLL/plugin directories beside the main
+executable. Copying only the main executable is not an installation.
 
 The ZIP includes Qt, vcpkg-built runtime libraries, game configurations, fonts, shaders,
 styles, the manual, and license material. Visual Studio, CMake, Qt, Python, vcpkg, and
@@ -46,7 +56,8 @@ namespace. Architect profiles and runtime data use `Architect/Profiles` and
 
 ## Current limitations
 
-The identity/package milestone does not yet provide the AI Architect panel, a provider
-configuration screen, a bundled Architect runtime, profiles, or generation. The first
-package passing this document's steps is a side-by-side branded skeleton, not the first
-usable AI release.
+The current package provides the AI Architect panel, bundled mock runtime, semantic room
+planning, deterministic room application, and normal undo/redo. It does not provide a
+real-provider configuration screen, profile creation or selection, profile assets,
+profile-guided generation, selection-aware placement, or a signed installer. It remains
+an unsigned development alpha rather than the first usable release.

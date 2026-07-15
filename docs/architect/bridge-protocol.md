@@ -1,0 +1,52 @@
+# Architect bridge protocol
+
+The current vertical slice uses a private child-process standard-input/standard-output
+channel. It does not open a TCP port, local socket, or public automation endpoint.
+
+## Lifecycle and transport
+
+`ui::ArchitectPanel` starts the fixed executable
+`TrenchBroomArchitectRuntime.exe` from the application directory with `QProcess`. It does
+not invoke a shell and user input never becomes a command or argument. Requests and
+responses are newline-delimited UTF-8 JSON. Only one planning request is active at a
+time; Stop terminates and restarts the child. Closing the panel's owning window also
+terminates the child.
+
+The protocol version is `architect/1`. Each request has this envelope:
+
+```json
+{"protocol":"architect/1","id":"room-1","method":"plan.room","params":{}}
+```
+
+A successful response repeats the protocol and request ID and contains `result`. A
+normal failure contains `error.code` and a user-safe `error.message`; it does not contain
+a stack trace or sensitive path.
+
+## Current methods
+
+- `runtime.status` returns the runtime name, `provider: mock`,
+  `transport: child_process_stdio`, and `external_access: false`.
+- `plan.room` accepts `prompt`, `units_per_metre`, and `material`, then returns one
+  validated `room/1` blueprint. It never writes to a map.
+
+Unknown methods and protocol versions return stable structured errors. Request IDs must
+be non-empty strings of at most 128 characters. A request or buffered response is
+limited to 64 KiB, a prompt is limited to 8 KiB, and the editor cancels a request after
+10 seconds.
+
+## Mutation boundary
+
+The runtime can only plan. The editor parses the response again with
+`roomBlueprintFromJson`, keeps it pending for review, and enables Apply only when the
+user explicitly checks the write-access box. Geometry creation then runs synchronously
+on the Qt UI thread through `mdl::createArchitectRoom` and the existing map command
+history.
+
+## External clients
+
+There is no endpoint descriptor, listener, or external-client mode in this milestone,
+so there is no remotely reachable session to authenticate. A future local automation
+endpoint must add high-entropy per-session authentication, freshness checks, client and
+concurrency limits, and an explicit disabled-by-default setting before it is exposed.
+The private child-process protocol must not be repurposed as an unauthenticated socket
+protocol.

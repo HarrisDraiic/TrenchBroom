@@ -13,6 +13,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <exception>
 #include <optional>
 #include <regex>
 #include <string>
@@ -43,10 +44,17 @@ std::optional<double> parseMeasurement(
     return std::nullopt;
   }
 
-  const auto value = std::stod(match[1].str());
-  const auto unit = match[2].str();
-  const auto isFeet = !unit.empty() && (unit.front() == 'f' || unit.front() == 'F');
-  return isFeet ? value * 0.3048 : value;
+  try
+  {
+    const auto value = std::stod(match[1].str());
+    const auto unit = match[2].str();
+    const auto isFeet = !unit.empty() && (unit.front() == 'f' || unit.front() == 'F');
+    return isFeet ? value * 0.3048 : value;
+  }
+  catch (const std::exception&)
+  {
+    return std::nullopt;
+  }
 }
 
 Error invalidArgument(std::string message)
@@ -54,10 +62,64 @@ Error invalidArgument(std::string message)
   return Error{ErrorCode::InvalidArgument, std::move(message)};
 }
 
+bool validProfileContext(const ProfilePlanningContext& profile)
+{
+  static const auto idExpression = std::regex{
+    R"([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})", std::regex::icase};
+  static const auto slugExpression = std::regex{R"([a-z0-9]+(?:-[a-z0-9]+)*)"};
+  return std::regex_match(profile.id, idExpression)
+         && std::regex_match(profile.slug, slugExpression) && profile.version >= 1
+         && !profile.designLanguage.empty() && profile.designLanguage.size() <= 8 * 1024;
+}
+
+using ProfileWallThicknessResult = std::variant<std::optional<double>, Error>;
+
+ProfileWallThicknessResult parseProfileWallThickness(const std::string& designLanguage)
+{
+  static const auto marker =
+    std::regex{R"(\broom\s+wall\s+thickness\s*:)", std::regex::icase};
+  if (!std::regex_search(designLanguage, marker))
+  {
+    return std::optional<double>{};
+  }
+
+  static const auto expression = std::regex{
+    R"(\broom\s+wall\s+thickness\s*:\s*([0-9]+(?:\.[0-9]+)?)\s*(metres?|meters?|m|feet|foot|ft)\b)",
+    std::regex::icase};
+  auto match = std::smatch{};
+  if (!std::regex_search(designLanguage, match, expression))
+  {
+    return invalidArgument(
+      "The active profile has an invalid room wall thickness directive.");
+  }
+
+  try
+  {
+    const auto value = std::stod(match[1].str());
+    const auto unit = match[2].str();
+    const auto isFeet = !unit.empty() && (unit.front() == 'f' || unit.front() == 'F');
+    const auto metres = isFeet ? value * 0.3048 : value;
+    if (!std::isfinite(metres) || metres < 0.1 || metres > 2.0)
+    {
+      return invalidArgument(
+        "Profile room wall thickness must be between 0.1 and 2 metres.");
+    }
+    return std::optional<double>{metres};
+  }
+  catch (const std::exception&)
+  {
+    return invalidArgument(
+      "The active profile has an invalid room wall thickness directive.");
+  }
+}
+
 } // namespace
 
 RoomPlanResult MockPlanner::planRoom(
-  const std::string_view promptView, const double unitsPerMetre, std::string material)
+  const std::string_view promptView,
+  const double unitsPerMetre,
+  std::string material,
+  std::optional<ProfilePlanningContext> profile)
 {
   if (promptView.empty())
   {
@@ -66,6 +128,43 @@ RoomPlanResult MockPlanner::planRoom(
   if (!std::isfinite(unitsPerMetre) || unitsPerMetre < 1.0 || unitsPerMetre > 4096.0)
   {
     return invalidArgument("units_per_metre must be between 1 and 4096.");
+  }
+
+  auto wallThicknessMetres = 0.25;
+  auto scaleAssumption =
+    std::string{"Mock provider used the editor-supplied units-per-metre scale."};
+  auto provenance = std::optional<ProfileProvenance>{};
+  if (profile)
+  {
+    if (!validProfileContext(*profile))
+    {
+      return invalidArgument("The active profile planning context is invalid.");
+    }
+
+    const auto thicknessResult = parseProfileWallThickness(profile->designLanguage);
+    if (const auto* error = std::get_if<Error>(&thicknessResult))
+    {
+      return *error;
+    }
+    const auto& profileThickness = std::get<std::optional<double>>(thicknessResult);
+    if (profileThickness)
+    {
+      wallThicknessMetres = *profileThickness;
+      scaleAssumption += " Active profile " + profile->slug + " version "
+                         + std::to_string(profile->version)
+                         + " applied its explicit room wall thickness rule.";
+    }
+    else
+    {
+      scaleAssumption += " Active profile " + profile->slug + " version "
+                         + std::to_string(profile->version)
+                         + " supplied provenance; no supported room rule was present.";
+    }
+    provenance = ProfileProvenance{
+      .id = profile->id,
+      .slug = profile->slug,
+      .version = profile->version,
+    };
   }
 
   const auto prompt = std::string{promptView};
@@ -91,7 +190,8 @@ RoomPlanResult MockPlanner::planRoom(
     material = "__TB_empty";
   }
 
-  const auto wallThickness = snapToGrid(0.25 * unitsPerMetre);
+  const auto wallThickness = snapToGrid(wallThicknessMetres * unitsPerMetre);
+  const auto slabThickness = snapToGrid(0.25 * unitsPerMetre);
   const auto interiorWidth = snapToGrid(*widthMetres * unitsPerMetre);
   const auto interiorDepth = snapToGrid(*depthMetres * unitsPerMetre);
   const auto interiorHeight = snapToGrid(*heightMetres * unitsPerMetre);
@@ -112,8 +212,8 @@ RoomPlanResult MockPlanner::planRoom(
     .interiorDepth = interiorDepth,
     .interiorHeight = interiorHeight,
     .wallThickness = wallThickness,
-    .floorThickness = wallThickness,
-    .ceilingThickness = wallThickness,
+    .floorThickness = slabThickness,
+    .ceilingThickness = slabThickness,
     .origin = {0.0, 0.0, 0.0},
     .material = std::move(material),
     .doorway =
@@ -123,7 +223,8 @@ RoomPlanResult MockPlanner::planRoom(
         .height = doorwayHeight,
         .centerOffset = 0.0,
       },
-    .scaleAssumption = "Mock provider used the editor-supplied units-per-metre scale.",
+    .scaleAssumption = std::move(scaleAssumption),
+    .profile = std::move(provenance),
   };
 }
 

@@ -116,6 +116,8 @@ TEST_CASE("Protocol")
     const auto parsed = roomBlueprintFromJson(json);
     REQUIRE(std::holds_alternative<RoomBlueprint>(parsed));
     CHECK(std::get<RoomBlueprint>(parsed).material == "stone");
+    CHECK_FALSE(std::get<RoomBlueprint>(parsed).profile.has_value());
+    CHECK_FALSE(json.contains("profile"));
   }
 
   SECTION("manages draft profiles through the bounded runtime protocol")
@@ -171,6 +173,78 @@ TEST_CASE("Protocol")
       },
       &store);
     CHECK(cleared.value("result").toObject().value("cleared").toBool());
+  }
+
+  SECTION("plans with the persisted active profile snapshot and round trips provenance")
+  {
+    auto temporaryDirectory = QTemporaryDir{};
+    REQUIRE(temporaryDirectory.isValid());
+    auto store = ProfileStore{QDir{temporaryDirectory.path()}.filePath("Profiles")};
+    const auto created = store.createDraft(
+      "Greyhaven Monastery", "Sober coastal stone.\n\nRoom wall thickness: 0.5 metres");
+    REQUIRE(std::holds_alternative<ArchitecturalProfile>(created));
+    REQUIRE(std::holds_alternative<ArchitecturalProfile>(
+      store.setActive("greyhaven-monastery")));
+
+    const auto response = handleRequest(
+      QJsonObject{
+        {"protocol", "architect/1"},
+        {"id", "profile-room"},
+        {"method", "plan.room"},
+        {"params",
+         QJsonObject{
+           {"prompt", "Create a room 12 metres wide, 10 metres deep, 5 metres tall"},
+           {"units_per_metre", 32.0},
+           {"material", "stone"},
+         }},
+      },
+      &store);
+
+    const auto json = response.value("result").toObject().value("blueprint").toObject();
+    REQUIRE(json.value("profile").isObject());
+    const auto parsed = roomBlueprintFromJson(json);
+    REQUIRE(std::holds_alternative<RoomBlueprint>(parsed));
+    const auto& blueprint = std::get<RoomBlueprint>(parsed);
+    CHECK(blueprint.wallThickness == 16.0);
+    CHECK(blueprint.floorThickness == 8.0);
+    REQUIRE(blueprint.profile.has_value());
+    CHECK(blueprint.profile->id == std::get<ArchitecturalProfile>(created).id);
+    CHECK(blueprint.profile->slug == "greyhaven-monastery");
+    CHECK(blueprint.profile->version == 1);
+
+    auto invalidJson = json;
+    auto invalidProfile = invalidJson.value("profile").toObject();
+    invalidProfile.insert("version", 1.5);
+    invalidJson.insert("profile", invalidProfile);
+    CHECK(std::holds_alternative<Error>(roomBlueprintFromJson(invalidJson)));
+  }
+
+  SECTION("fails safely when persisted active profile data is stale")
+  {
+    auto temporaryDirectory = QTemporaryDir{};
+    REQUIRE(temporaryDirectory.isValid());
+    auto store = ProfileStore{QDir{temporaryDirectory.path()}.filePath("Profiles")};
+    REQUIRE(std::holds_alternative<ArchitecturalProfile>(
+      store.createDraft("Greyhaven", "Sober coastal stone.")));
+    REQUIRE(std::holds_alternative<ArchitecturalProfile>(store.setActive("greyhaven")));
+    REQUIRE(QDir{QDir{store.rootPath()}.filePath("greyhaven")}.removeRecursively());
+
+    const auto response = handleRequest(
+      QJsonObject{
+        {"protocol", "architect/1"},
+        {"id", "stale-profile-room"},
+        {"method", "plan.room"},
+        {"params",
+         QJsonObject{
+           {"prompt", "Create a room 12 metres wide, 10 metres deep, 5 metres tall"},
+           {"units_per_metre", 32.0},
+           {"material", "stone"},
+         }},
+      },
+      &store);
+
+    CHECK(
+      response.value("error").toObject().value("code").toString() == "profile_not_found");
   }
 
   SECTION("keeps profile methods disabled without a configured root")

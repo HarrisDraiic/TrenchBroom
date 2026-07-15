@@ -12,7 +12,9 @@
 #include "architect/Protocol.h"
 
 #include <QJsonArray>
+#include <QRegularExpression>
 #include <QString>
+#include <QUuid>
 
 #include "architect/ProfileStore.h"
 
@@ -103,7 +105,7 @@ QJsonObject profileToJson(const ArchitecturalProfile& profile)
 
 QJsonObject roomBlueprintToJson(const RoomBlueprint& blueprint)
 {
-  return QJsonObject{
+  auto json = QJsonObject{
     {"schema", "room/1"},
     {"id", QString::fromStdString(blueprint.id)},
     {"units_per_metre", blueprint.unitsPerMetre},
@@ -124,6 +126,17 @@ QJsonObject roomBlueprintToJson(const RoomBlueprint& blueprint)
      }},
     {"scale_assumption", QString::fromStdString(blueprint.scaleAssumption)},
   };
+  if (blueprint.profile)
+  {
+    json.insert(
+      "profile",
+      QJsonObject{
+        {"id", QString::fromStdString(blueprint.profile->id)},
+        {"slug", QString::fromStdString(blueprint.profile->slug)},
+        {"version", blueprint.profile->version},
+      });
+  }
+  return json;
 }
 
 RoomPlanResult roomBlueprintFromJson(const QJsonObject& json)
@@ -178,6 +191,37 @@ RoomPlanResult roomBlueprintFromJson(const QJsonObject& json)
     return invalidBlueprint("material is invalid.");
   }
 
+  auto profile = std::optional<ProfileProvenance>{};
+  const auto profileValue = json.value("profile");
+  if (!profileValue.isUndefined())
+  {
+    if (!profileValue.isObject())
+    {
+      return invalidBlueprint("profile provenance is invalid.");
+    }
+    const auto profileJson = profileValue.toObject();
+    const auto id = profileJson.value("id").toString();
+    const auto slug = profileJson.value("slug").toString();
+    const auto versionValue = profileJson.value("version");
+    const auto version = versionValue.toInt(0);
+    static const auto slugExpression = QRegularExpression{"^[a-z0-9]+(?:-[a-z0-9]+)*$"};
+    const auto uuid = QUuid{id};
+    if (
+      uuid.isNull()
+      || uuid.toString(QUuid::WithoutBraces).compare(id, Qt::CaseInsensitive) != 0
+      || slug.isEmpty() || slug.size() > 128 || !slugExpression.match(slug).hasMatch()
+      || !versionValue.isDouble()
+      || versionValue.toDouble() != static_cast<double>(version) || version < 1)
+    {
+      return invalidBlueprint("profile provenance is invalid.");
+    }
+    profile = ProfileProvenance{
+      .id = id.toStdString(),
+      .slug = slug.toStdString(),
+      .version = version,
+    };
+  }
+
   return RoomBlueprint{
     .id = json.value("id").toString().toStdString(),
     .unitsPerMetre = json.value("units_per_metre").toDouble(),
@@ -197,6 +241,7 @@ RoomPlanResult roomBlueprintFromJson(const QJsonObject& json)
         .centerOffset = centerOffset,
       },
     .scaleAssumption = json.value("scale_assumption").toString().toStdString(),
+    .profile = std::move(profile),
   };
 }
 
@@ -346,10 +391,31 @@ QJsonObject handleRequest(const QJsonObject& request, ProfileStore* profileStore
         id, Error{ErrorCode::InvalidArgument, "The prompt exceeds 8192 bytes."});
     }
 
+    auto profileContext = std::optional<ProfilePlanningContext>{};
+    if (profileStore != nullptr)
+    {
+      const auto snapshotResult = profileStore->activeSnapshot();
+      if (const auto* error = std::get_if<Error>(&snapshotResult))
+      {
+        return makeErrorResponse(id, *error);
+      }
+      const auto& snapshot = std::get<std::optional<ProfileSnapshot>>(snapshotResult);
+      if (snapshot)
+      {
+        profileContext = ProfilePlanningContext{
+          .id = snapshot->profile.id,
+          .slug = snapshot->profile.slug,
+          .version = snapshot->profile.version,
+          .designLanguage = snapshot->designLanguage,
+        };
+      }
+    }
+
     auto result = MockPlanner::planRoom(
       prompt.toStdString(),
       params.value("units_per_metre").toDouble(0.0),
-      params.value("material").toString().toStdString());
+      params.value("material").toString().toStdString(),
+      std::move(profileContext));
     if (const auto* error = std::get_if<Error>(&result))
     {
       return makeErrorResponse(id, *error);

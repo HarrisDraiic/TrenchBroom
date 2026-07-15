@@ -12,6 +12,7 @@
 #pragma once
 
 #include <array>
+#include <optional>
 #include <string>
 
 namespace tb::architect
@@ -35,6 +36,15 @@ struct DoorwayBlueprint
   bool operator==(const DoorwayBlueprint&) const = default;
 };
 
+struct ProfileProvenance
+{
+  std::string id;
+  std::string slug;
+  int version = 0;
+
+  bool operator==(const ProfileProvenance&) const = default;
+};
+
 struct RoomBlueprint
 {
   std::string id;
@@ -49,6 +59,7 @@ struct RoomBlueprint
   std::string material;
   DoorwayBlueprint doorway;
   std::string scaleAssumption;
+  std::optional<ProfileProvenance> profile;
 
   bool operator==(const RoomBlueprint&) const = default;
 };

@@ -35,9 +35,18 @@ struct ArchitecturalProfile
   bool operator==(const ArchitecturalProfile&) const = default;
 };
 
+struct ProfileSnapshot
+{
+  ArchitecturalProfile profile;
+  std::string designLanguage;
+
+  bool operator==(const ProfileSnapshot&) const = default;
+};
+
 using ProfileResult = std::variant<ArchitecturalProfile, Error>;
 using ProfileListResult = std::variant<std::vector<ArchitecturalProfile>, Error>;
 using ActiveProfileResult = std::variant<std::optional<ArchitecturalProfile>, Error>;
+using ActiveProfileSnapshotResult = std::variant<std::optional<ProfileSnapshot>, Error>;
 
 class ProfileStore
 {
@@ -56,6 +65,7 @@ public:
     std::vector<std::string> aliases = {});
   ProfileResult resolve(const std::string& reference) const;
   ActiveProfileResult active() const;
+  ActiveProfileSnapshotResult activeSnapshot() const;
   ProfileResult setActive(const std::string& reference);
   std::optional<Error> clearActive();
 };

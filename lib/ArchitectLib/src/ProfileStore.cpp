@@ -18,6 +18,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QSaveFile>
+#include <QStringDecoder>
 #include <QUuid>
 
 #include <algorithm>
@@ -35,6 +36,7 @@ constexpr auto DesignLanguageFilename = "design-language.md";
 constexpr auto ActiveProfileFilename = "active-profile.json";
 constexpr qsizetype MaximumProfileFileBytes = 64 * 1024;
 constexpr qsizetype MaximumDesignLanguageBytes = 8 * 1024;
+constexpr qsizetype MaximumDesignLanguageDocumentBytes = 9 * 1024;
 
 Error profileError(const ErrorCode code, std::string message)
 {
@@ -447,6 +449,74 @@ ActiveProfileResult ProfileStore::active() const
     }
   }
   return profileError(ErrorCode::ProfileNotFound, "The active profile was not found.");
+}
+
+ActiveProfileSnapshotResult ProfileStore::activeSnapshot() const
+{
+  const auto activeResult = active();
+  if (const auto* error = std::get_if<Error>(&activeResult))
+  {
+    return *error;
+  }
+
+  const auto& activeProfile = std::get<std::optional<ArchitecturalProfile>>(activeResult);
+  if (!activeProfile)
+  {
+    return std::optional<ProfileSnapshot>{};
+  }
+
+  const auto canonicalRoot =
+    QFileInfo{QDir{m_rootPath}.absolutePath()}.canonicalFilePath();
+  const auto designLanguagePath =
+    QDir{QDir{m_rootPath}.filePath(qString(activeProfile->slug))}.filePath(
+      DesignLanguageFilename);
+  const auto designLanguageInfo = QFileInfo{designLanguagePath};
+  if (
+    !designLanguageInfo.isFile() || designLanguageInfo.isSymLink()
+    || !containedBy(canonicalRoot, designLanguageInfo.canonicalFilePath()))
+  {
+    return profileError(
+      ErrorCode::UnsupportedProfileSchema,
+      "The active profile design language path is invalid.");
+  }
+
+  auto file = QFile{designLanguagePath};
+  if (
+    !file.open(QIODevice::ReadOnly) || file.size() < 1
+    || file.size() > MaximumDesignLanguageDocumentBytes)
+  {
+    return profileError(
+      ErrorCode::UnsupportedProfileSchema,
+      "The active profile design language is invalid.");
+  }
+  const auto bytes = file.readAll();
+  const auto expectedHeader =
+    QString{"# %1 design language\n\nStatus: Draft\nVersion: %2\n\n"}
+      .arg(qString(activeProfile->displayName))
+      .arg(activeProfile->version)
+      .toUtf8();
+  if (!bytes.startsWith(expectedHeader))
+  {
+    return profileError(
+      ErrorCode::UnsupportedProfileSchema,
+      "The active profile design language header is invalid.");
+  }
+
+  auto decoder = QStringDecoder{QStringDecoder::Utf8};
+  const QString decodedDesignLanguage = decoder.decode(bytes.mid(expectedHeader.size()));
+  const auto designLanguage = decodedDesignLanguage.trimmed();
+  if (
+    decoder.hasError() || designLanguage.isEmpty()
+    || designLanguage.toUtf8().size() > MaximumDesignLanguageBytes)
+  {
+    return profileError(
+      ErrorCode::UnsupportedProfileSchema,
+      "The active profile design language is invalid.");
+  }
+  return std::optional<ProfileSnapshot>{ProfileSnapshot{
+    .profile = *activeProfile,
+    .designLanguage = stdString(designLanguage),
+  }};
 }
 
 ProfileResult ProfileStore::setActive(const std::string& reference)

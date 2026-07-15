@@ -14,6 +14,7 @@
 #include "architect/Error.h"
 #include "architect/RoomBlueprint.h"
 
+#include <optional>
 #include <string>
 #include <string_view>
 #include <variant>
@@ -23,11 +24,22 @@ namespace tb::architect
 
 using RoomPlanResult = std::variant<RoomBlueprint, Error>;
 
+struct ProfilePlanningContext
+{
+  std::string id;
+  std::string slug;
+  int version = 0;
+  std::string designLanguage;
+};
+
 class MockPlanner
 {
 public:
   static RoomPlanResult planRoom(
-    std::string_view prompt, double unitsPerMetre, std::string material);
+    std::string_view prompt,
+    double unitsPerMetre,
+    std::string material,
+    std::optional<ProfilePlanningContext> profile = std::nullopt);
 };
 
 } // namespace tb::architect

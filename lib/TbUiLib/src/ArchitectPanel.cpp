@@ -154,8 +154,9 @@ void ArchitectPanel::createGui()
   layout->addWidget(new QLabel{"Provider: deterministic mock (no credentials)"});
   layout->addWidget(new QLabel{"Scale: 32 map units per metre"});
   layout->addLayout(profileLayout);
-  layout->addWidget(new QLabel{
-    "Profile selection is saved; deterministic mock rooms are not profile-guided yet."});
+  layout->addWidget(
+    new QLabel{"Active drafts guide explicit mock room rules; selection alone never "
+               "edits the map."});
   layout->addWidget(m_status);
   layout->addWidget(m_transcript, 1);
   layout->addWidget(m_prompt);
@@ -531,8 +532,8 @@ void ArchitectPanel::handleResponse(const QByteArray& line)
       return;
     }
     appendArchitectMessage(
-      QString{"Active profile: %1. Selection is saved; mock room planning does not "
-              "apply profile rules yet."}
+      QString{"Active profile: %1. Subsequent previews use supported read-only profile "
+              "rules; selecting it does not change the map."}
         .arg(displayName));
     requestProfiles();
     return;
@@ -545,7 +546,8 @@ void ArchitectPanel::handleResponse(const QByteArray& line)
       stopRuntime("invalid_response");
       return;
     }
-    appendArchitectMessage("No active profile. Selection is saved.");
+    appendArchitectMessage(
+      "No active profile. Subsequent room previews use deterministic defaults.");
     requestProfiles();
     return;
   }
@@ -568,6 +570,23 @@ void ArchitectPanel::handleResponse(const QByteArray& line)
         .arg(blueprint->interiorWidth / blueprint->unitsPerMetre, 0, 'f', 1)
         .arg(blueprint->interiorDepth / blueprint->unitsPerMetre, 0, 'f', 1)
         .arg(blueprint->interiorHeight / blueprint->unitsPerMetre, 0, 'f', 1));
+    appendArchitectMessage(QString{"Planning assumption: %1"}.arg(
+      QString::fromStdString(blueprint->scaleAssumption)));
+    if (blueprint->profile)
+    {
+      appendArchitectMessage(
+        QString{"Profile provenance: %1 version %2 (%3); planned wall thickness %4 m."}
+          .arg(QString::fromStdString(blueprint->profile->slug))
+          .arg(blueprint->profile->version)
+          .arg(QString::fromStdString(blueprint->profile->id))
+          .arg(blueprint->wallThickness / blueprint->unitsPerMetre, 0, 'f', 2));
+    }
+    else
+    {
+      appendArchitectMessage(
+        QString{"Profile provenance: none; planned wall thickness %1 m."}.arg(
+          blueprint->wallThickness / blueprint->unitsPerMetre, 0, 'f', 2));
+    }
   }
   else
   {

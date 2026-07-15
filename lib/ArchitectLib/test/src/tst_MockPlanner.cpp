@@ -72,6 +72,77 @@ TEST_CASE("MockPlanner")
     REQUIRE(std::holds_alternative<Error>(result));
     CHECK(std::get<Error>(result).code == ErrorCode::InvalidArgument);
   }
+
+  SECTION("applies an explicit active profile room rule and records provenance")
+  {
+    const auto context = ProfilePlanningContext{
+      .id = "61274e0d-452a-4d59-9c32-d596fd7ea462",
+      .slug = "greyhaven-monastery",
+      .version = 3,
+      .designLanguage = "Sober coastal stone.\n\nRoom wall thickness: 0.5 metres",
+    };
+    const auto result = MockPlanner::planRoom(prompt, 32.0, "stone", context);
+
+    REQUIRE(std::holds_alternative<RoomBlueprint>(result));
+    const auto& blueprint = std::get<RoomBlueprint>(result);
+    CHECK(blueprint.wallThickness == 16.0);
+    CHECK(blueprint.floorThickness == 8.0);
+    REQUIRE(blueprint.profile.has_value());
+    CHECK(blueprint.profile->id == context.id);
+    CHECK(blueprint.profile->slug == context.slug);
+    CHECK(blueprint.profile->version == context.version);
+    CHECK(
+      blueprint.scaleAssumption.find("explicit room wall thickness rule")
+      != std::string::npos);
+  }
+
+  SECTION("preserves defaults when an active profile has no supported room rule")
+  {
+    const auto context = ProfilePlanningContext{
+      .id = "61274e0d-452a-4d59-9c32-d596fd7ea462",
+      .slug = "greyhaven-monastery",
+      .version = 1,
+      .designLanguage = "Sober coastal stone and compact cloisters.",
+    };
+    const auto result = MockPlanner::planRoom(prompt, 32.0, "stone", context);
+
+    REQUIRE(std::holds_alternative<RoomBlueprint>(result));
+    const auto& blueprint = std::get<RoomBlueprint>(result);
+    CHECK(blueprint.wallThickness == 8.0);
+    REQUIRE(blueprint.profile.has_value());
+    CHECK(blueprint.profile->slug == context.slug);
+  }
+
+  SECTION("rejects malformed or unsafe active profile rules")
+  {
+    const auto malformed = ProfilePlanningContext{
+      .id = "61274e0d-452a-4d59-9c32-d596fd7ea462",
+      .slug = "greyhaven-monastery",
+      .version = 1,
+      .designLanguage = "Room wall thickness: very thick",
+    };
+    const auto malformedResult = MockPlanner::planRoom(prompt, 32.0, "stone", malformed);
+    REQUIRE(std::holds_alternative<Error>(malformedResult));
+    CHECK(std::get<Error>(malformedResult).code == ErrorCode::InvalidArgument);
+
+    auto unsafe = malformed;
+    unsafe.designLanguage = "Room wall thickness: 3 metres";
+    const auto unsafeResult = MockPlanner::planRoom(prompt, 32.0, "stone", unsafe);
+    REQUIRE(std::holds_alternative<Error>(unsafeResult));
+    CHECK(std::get<Error>(unsafeResult).code == ErrorCode::InvalidArgument);
+  }
+
+  SECTION("rejects an out-of-range numeric prompt without throwing")
+  {
+    const auto result = MockPlanner::planRoom(
+      "Create a room 999999999999999999999999999999999999999999999999 metres wide, "
+      "10 metres deep and 5 metres tall",
+      32.0,
+      "stone");
+
+    REQUIRE(std::holds_alternative<Error>(result));
+    CHECK(std::get<Error>(result).code == ErrorCode::InvalidArgument);
+  }
 }
 
 } // namespace tb::architect

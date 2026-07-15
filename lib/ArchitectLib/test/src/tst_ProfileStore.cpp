@@ -103,6 +103,38 @@ TEST_CASE("ProfileStore")
     CHECK_FALSE(std::get<std::optional<ArchitecturalProfile>>(cleared).has_value());
   }
 
+  SECTION("loads a bounded read-only snapshot of the active design language")
+  {
+    const auto created = store.createDraft(
+      "Greyhaven", "Sober coastal stone.\n\nRoom wall thickness: 0.5 metres");
+    REQUIRE(std::holds_alternative<ArchitecturalProfile>(created));
+    REQUIRE(std::holds_alternative<ArchitecturalProfile>(store.setActive("greyhaven")));
+
+    const auto result = store.activeSnapshot();
+    REQUIRE(std::holds_alternative<std::optional<ProfileSnapshot>>(result));
+    const auto& snapshot = std::get<std::optional<ProfileSnapshot>>(result);
+    REQUIRE(snapshot.has_value());
+    CHECK(snapshot->profile == std::get<ArchitecturalProfile>(created));
+    CHECK(
+      snapshot->designLanguage.find("Room wall thickness: 0.5 metres")
+      != std::string::npos);
+  }
+
+  SECTION("rejects a malformed active design-language document")
+  {
+    REQUIRE(std::holds_alternative<ArchitecturalProfile>(
+      store.createDraft("Greyhaven", "Sober coastal stone.")));
+    REQUIRE(std::holds_alternative<ArchitecturalProfile>(store.setActive("greyhaven")));
+    auto file = QFile{QDir{store.rootPath()}.filePath("greyhaven/design-language.md")};
+    REQUIRE(file.open(QIODevice::WriteOnly | QIODevice::Truncate));
+    REQUIRE(file.write("# malformed\n") > 0);
+    file.close();
+
+    const auto result = store.activeSnapshot();
+    REQUIRE(std::holds_alternative<Error>(result));
+    CHECK(std::get<Error>(result).code == ErrorCode::UnsupportedProfileSchema);
+  }
+
   SECTION("rejects traversal-like names and normalized collisions")
   {
     const auto traversal = store.createDraft("../..", "Unsafe name.");
